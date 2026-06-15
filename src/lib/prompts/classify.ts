@@ -39,6 +39,6 @@ Respond ONLY with valid JSON:
   "reason": "one sentence explaining why this format fits"
 }`;
 
-  const raw = await generate(SYSTEM, prompt, { maxOutputTokens: 200, temperature: 0.2 });
+  const raw = await generate(SYSTEM, prompt, { maxOutputTokens: 500, temperature: 0.2 });
   return extractJSON<ClassificationResult>(raw);
 }

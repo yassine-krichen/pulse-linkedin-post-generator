@@ -5,6 +5,7 @@ import { Post } from '@/types';
 import { PostCard } from '@/components/post-card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { Layers, Filter } from 'lucide-react';
 
 type Filter = 'all' | 'draft' | 'ready';
 
@@ -21,7 +22,9 @@ export default function BacklogPage() {
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   async function handleMarkReady(p: Post) {
     await fetch(`/api/posts/${p.id}`, {
@@ -55,18 +58,22 @@ export default function BacklogPage() {
     <div className="max-w-2xl mx-auto px-6 py-12 space-y-8">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h1 className="text-lg font-medium tracking-tight">Backlog</h1>
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-muted-foreground" />
+            <h1 className="text-lg font-semibold tracking-tight">Backlog</h1>
+          </div>
           <p className="text-sm text-muted-foreground">
             {posts.length} post{posts.length !== 1 ? 's' : ''} queued
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-1.5">
+          <Filter className="w-3.5 h-3.5 text-muted-foreground/60 mr-1" />
           {(['all', 'draft', 'ready'] as Filter[]).map((f) => (
             <Button
               key={f}
               variant={filter === f ? 'secondary' : 'ghost'}
               size="sm"
-              className="text-xs capitalize"
+              className="text-xs capitalize h-7 px-2.5"
               onClick={() => setFilter(f)}
             >
               {f}
@@ -75,7 +82,9 @@ export default function BacklogPage() {
         </div>
       </div>
 
-      {loading && <p className="text-sm text-muted-foreground font-mono">Loading...</p>}
+      {loading && (
+        <p className="text-sm text-muted-foreground font-mono animate-pulse">Loading...</p>
+      )}
 
       {!loading && filtered.length === 0 && (
         <p className="text-sm text-muted-foreground">
