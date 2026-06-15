@@ -9,6 +9,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { PostCard } from '@/components/post-card';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Globe,
+  X,
+  MessageSquare,
+  Clock,
+  Target,
+} from 'lucide-react';
 
 // LinkedIn best posting times based on published engagement research
 const BEST_TIMES: Record<number, { label: string; quality: 'high' | 'medium' | 'low' }> = {
@@ -28,7 +39,7 @@ const COMMENT_TIPS = [
   'Add substance to replies, not just "Thanks!" — a question back keeps the thread alive',
   'Like meaningful comments even when you reply — it registers as additional engagement',
   'If someone leaves a standout comment, quote it in a future post (with credit)',
-  'Each reply extends your post\'s visible window — treat them as mini-posts',
+  "Each reply extends your post's visible window — treat them as mini-posts",
 ];
 
 function getWeekBounds(offset: number): { start: Date; end: Date } {
@@ -186,17 +197,23 @@ export default function PlannerPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h1 className="text-lg font-medium tracking-tight">Planner</h1>
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+            <h1 className="text-lg font-semibold tracking-tight">Planner</h1>
+          </div>
           <p className="text-sm text-muted-foreground">
             {filledCount}/{weeklyTarget} post{weeklyTarget !== 1 ? 's' : ''} this week
             {gapCount > 0 && (
-              <span className="text-foreground/50 ml-2">· {gapCount} gap{gapCount !== 1 ? 's' : ''}</span>
+              <span className="text-foreground/50 ml-2">
+                · {gapCount} gap{gapCount !== 1 ? 's' : ''}
+              </span>
             )}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground font-mono">Target/week:</span>
+            <Target className="w-3 h-3 text-muted-foreground/60" />
+            <span className="text-xs text-muted-foreground font-mono">Target:</span>
             {[1, 2, 3].map((n) => (
               <button
                 key={n}
@@ -204,7 +221,7 @@ export default function PlannerPage() {
                 className={cn(
                   'w-7 h-7 text-xs rounded border font-mono transition-colors',
                   weeklyTarget === n
-                    ? 'border-foreground text-foreground'
+                    ? 'border-foreground text-foreground bg-muted'
                     : 'border-border text-muted-foreground hover:border-foreground/50',
                 )}
               >
@@ -212,30 +229,30 @@ export default function PlannerPage() {
               </button>
             ))}
           </div>
-          <div className="flex gap-1">
+          <div className="flex items-center gap-0.5 border border-border/60 rounded-lg p-0.5">
             <Button
               variant="ghost"
-              size="sm"
-              className="text-xs px-2"
+              size="icon"
+              className="h-7 w-7"
               onClick={() => setWeekOffset((o) => o - 1)}
             >
-              ←
+              <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="text-xs min-w-24"
+              className="text-xs min-w-24 h-7 font-mono"
               onClick={() => setWeekOffset(0)}
             >
               {weekLabel}
             </Button>
             <Button
               variant="ghost"
-              size="sm"
-              className="text-xs px-2"
+              size="icon"
+              className="h-7 w-7"
               onClick={() => setWeekOffset((o) => o + 1)}
             >
-              →
+              <ChevronRight className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
@@ -253,8 +270,8 @@ export default function PlannerPage() {
             <div
               key={day.toISOString()}
               className={cn(
-                'border rounded p-2 space-y-2 min-h-28 flex flex-col',
-                isToday ? 'border-foreground/30' : 'border-border/40',
+                'border rounded-lg p-2 space-y-2 min-h-28 flex flex-col',
+                isToday ? 'border-foreground/40 bg-muted/10' : 'border-border/40',
                 isPast && !dayPost ? 'opacity-40' : '',
               )}
             >
@@ -262,12 +279,14 @@ export default function PlannerPage() {
                 <span
                   className={cn(
                     'text-xs font-mono',
-                    isToday ? 'text-foreground font-medium' : 'text-muted-foreground',
+                    isToday ? 'text-foreground font-semibold' : 'text-muted-foreground',
                   )}
                 >
                   {DAY_NAMES[day.getDay()]}
                 </span>
-                <span className="text-xs text-muted-foreground/60 font-mono">{day.getDate()}</span>
+                <span className="text-xs text-muted-foreground/50 font-mono">
+                  {day.getDate()}
+                </span>
               </div>
               <div
                 className={cn(
@@ -287,7 +306,7 @@ export default function PlannerPage() {
                   <div className="space-y-1">
                     <Badge
                       variant={dayPost.status === 'posted' ? 'default' : 'secondary'}
-                      className="text-[10px] px-1"
+                      className="text-[10px] px-1.5 py-0"
                     >
                       {dayPost.status}
                     </Badge>
@@ -299,7 +318,7 @@ export default function PlannerPage() {
               ) : (
                 !isPast && (
                   <div className="flex-1 flex items-end">
-                    <p className="text-[10px] text-muted-foreground/40 font-mono leading-tight">
+                    <p className="text-[10px] text-muted-foreground/35 font-mono leading-tight">
                       {bestTime.label}
                     </p>
                   </div>
@@ -324,9 +343,10 @@ export default function PlannerPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs"
+                  className="text-xs gap-1.5 h-7"
                   onClick={() => setExpandedPost(null)}
                 >
+                  <X className="w-3 h-3" />
                   Close
                 </Button>
               </div>
@@ -339,7 +359,7 @@ export default function PlannerPage() {
       {gapCount > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <p className="text-sm font-medium">
                 {gapCount} slot{gapCount !== 1 ? 's' : ''} to fill
               </p>
@@ -348,27 +368,29 @@ export default function PlannerPage() {
               </p>
             </div>
             {/* Mode toggle */}
-            <div className="flex items-center border border-border rounded overflow-hidden text-xs font-mono">
+            <div className="flex items-center border border-border rounded-lg overflow-hidden text-xs font-mono">
               <button
                 onClick={() => setResearchMode('llm')}
                 className={cn(
-                  'px-3 py-1.5 transition-colors',
+                  'flex items-center gap-1.5 px-3 py-1.5 transition-colors',
                   researchMode === 'llm'
                     ? 'bg-foreground text-background'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
+                <Sparkles className="w-3 h-3" />
                 AI Suggest
               </button>
               <button
                 onClick={() => setResearchMode('manual')}
                 className={cn(
-                  'px-3 py-1.5 border-l border-border transition-colors',
+                  'flex items-center gap-1.5 px-3 py-1.5 border-l border-border transition-colors',
                   researchMode === 'manual'
                     ? 'bg-foreground text-background'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
+                <Globe className="w-3 h-3" />
                 Web Research
               </button>
             </div>
@@ -379,11 +401,12 @@ export default function PlannerPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="text-xs"
+                className="text-xs gap-1.5"
                 onClick={loadLlmTopics}
                 disabled={loadingTopics}
               >
-                {loadingTopics ? 'Generating suggestions...' : 'Find Topics'}
+                <Sparkles className="w-3 h-3" />
+                {loadingTopics ? 'Generating...' : 'Find Topics'}
               </Button>
               <TopicList
                 topics={displayTopics}
@@ -402,21 +425,22 @@ export default function PlannerPage() {
               <Card className="border-border/40">
                 <CardHeader className="pb-2 pt-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">
-                      Research Prompt
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">
+                        Research Prompt
+                      </p>
+                    </div>
                     {researchPrompt && (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs"
+                        className="text-xs gap-1.5"
                         onClick={() => {
-                          if (!researchPrompt) {
-                            toast.error('Load the prompt first by clicking Find Topics in AI mode');
-                            return;
-                          }
                           navigator.clipboard.writeText(researchPrompt);
-                          toast.success('Prompt copied — paste it into Perplexity, ChatGPT, or any web AI');
+                          toast.success(
+                            'Prompt copied — paste it into Perplexity, ChatGPT, or any web AI',
+                          );
                         }}
                       >
                         Copy Prompt
@@ -433,7 +457,7 @@ export default function PlannerPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs"
+                        className="text-xs gap-1.5"
                         onClick={async () => {
                           setLoadingTopics(true);
                           try {
@@ -447,21 +471,20 @@ export default function PlannerPage() {
                         }}
                         disabled={loadingTopics}
                       >
+                        <Globe className="w-3 h-3" />
                         {loadingTopics ? 'Loading...' : 'Load Research Prompt'}
                       </Button>
                     </div>
                   ) : (
-                    <pre className="text-xs text-muted-foreground font-mono whitespace-pre-wrap bg-muted/20 rounded p-3 max-h-48 overflow-y-auto">
+                    <pre className="text-xs text-muted-foreground font-mono whitespace-pre-wrap bg-muted/20 rounded-lg p-3 max-h-48 overflow-y-auto border border-border/30">
                       {researchPrompt}
                     </pre>
                   )}
-                  <p className="text-xs text-muted-foreground/60">
-                    1. Copy prompt → paste into Perplexity / ChatGPT / any web AI
-                    <br />
-                    2. Copy the JSON response → paste below
-                    <br />
-                    3. Click Parse → select a topic → Generate post
-                  </p>
+                  <div className="text-xs text-muted-foreground/60 space-y-0.5">
+                    <p>1. Copy prompt → paste into Perplexity / ChatGPT / any web AI</p>
+                    <p>2. Copy the JSON response → paste below</p>
+                    <p>3. Click Parse → select a topic → Generate post</p>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -499,19 +522,20 @@ export default function PlannerPage() {
 
       {/* Comment strategy */}
       <div className="space-y-3">
-        <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">
-          Comment Strategy
-        </p>
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">
+            Comment Strategy
+          </p>
+        </div>
         <Card className="border-border/30">
-          <CardHeader className="pb-1 pt-4">
-            <p className="text-xs text-muted-foreground">
+          <CardContent className="pt-4 space-y-2.5 pb-4">
+            <p className="text-xs text-muted-foreground mb-3">
               Engagement in the first hour determines reach. After each post:
             </p>
-          </CardHeader>
-          <CardContent className="space-y-2.5 pb-4">
             {COMMENT_TIPS.map((tip, i) => (
               <div key={i} className="flex gap-3 text-xs text-muted-foreground">
-                <span className="shrink-0 font-mono text-foreground/30">{i + 1}.</span>
+                <span className="shrink-0 font-mono text-foreground/30 w-4">{i + 1}.</span>
                 <span>{tip}</span>
               </div>
             ))}
@@ -520,11 +544,14 @@ export default function PlannerPage() {
       </div>
 
       {/* Best times legend */}
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">
-          Posting Times
-        </p>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground uppercase tracking-widest font-mono">
+            Posting Times
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-1.5">
           {Object.entries(BEST_TIMES).map(([day, info]) => (
             <div key={day} className="flex items-center gap-2.5 text-xs">
               <div
@@ -562,8 +589,8 @@ function TopicList({ topics, generatingFor, onGenerate }: TopicListProps) {
         <Card key={i} className="border-border/40">
           <CardContent className="pt-3 pb-3">
             <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1 flex-1">
-                <p className="text-sm font-medium">{topic.title}</p>
+              <div className="space-y-1 flex-1 min-w-0">
+                <p className="text-sm font-medium leading-snug">{topic.title}</p>
                 <p className="text-xs text-muted-foreground">{topic.summary}</p>
                 {topic.relevance && (
                   <p className="text-xs text-muted-foreground/50">{topic.relevance}</p>
@@ -572,11 +599,12 @@ function TopicList({ topics, generatingFor, onGenerate }: TopicListProps) {
               <Button
                 size="sm"
                 variant="outline"
-                className="text-xs shrink-0"
+                className="text-xs shrink-0 gap-1.5"
                 disabled={generatingFor !== null}
                 onClick={() => onGenerate(topic)}
               >
-                {generatingFor ? '...' : 'Generate'}
+                <Sparkles className="w-3 h-3" />
+                {generatingFor ? 'Working...' : 'Generate'}
               </Button>
             </div>
           </CardContent>
