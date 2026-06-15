@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Post {
+  id            String    @id @default(cuid())
+  rawInput      String
+  format        String    // 'standard' | 'carousel' | 'image'
+  title         String
+  content       String    // JSON string of generated post content
+  imageStrategy String
+  hashtags      String    // comma-separated
+  status        String    @default("draft") // 'draft' | 'ready' | 'posted'
+  source        String    @default("user") // 'user' | 'trending'
+  topicCategory String?
+  scheduledDate DateTime?
+  postedDate    DateTime?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model WeeklyTarget {
+  id           String   @id @default(cuid())
+  postsPerWeek Int      @default(1)
+  updatedAt    DateTime @updatedAt
+}
