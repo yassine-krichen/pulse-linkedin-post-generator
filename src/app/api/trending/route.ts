@@ -5,6 +5,7 @@ import { generatePost } from '@/lib/prompts/generate';
 import { db } from '@/lib/db';
 import { Post, TrendingTopic } from '@/types';
 import { createId } from '@/lib/id';
+import { trendingRequestSchema, formatZodError } from '@/lib/validation';
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -22,8 +23,12 @@ export async function GET(): Promise<NextResponse> {
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const body: { topic?: TrendingTopic; researchPaste?: string; scheduledDate?: string } =
-      await req.json();
+    const raw = await req.json();
+    const result = trendingRequestSchema.safeParse(raw);
+    if (!result.success) {
+      return NextResponse.json({ error: formatZodError(result.error) }, { status: 400 });
+    }
+    const body = result.data;
 
     const ctx = loadProfileContext();
     let topic: TrendingTopic;

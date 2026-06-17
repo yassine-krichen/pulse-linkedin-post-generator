@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { postUpdateSchema, formatZodError } from '@/lib/validation';
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
   const { id } = await params;
@@ -10,8 +11,13 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
   const { id } = await params;
-  const updates = await req.json();
-  const post = await db.posts.update(id, updates);
+  const body = await req.json();
+  const result = postUpdateSchema.safeParse(body);
+  if (!result.success) {
+    return NextResponse.json({ error: formatZodError(result.error) }, { status: 400 });
+  }
+
+  const post = await db.posts.update(id, result.data);
   if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json(post);
 }

@@ -43,8 +43,8 @@ export interface Post {
   status: PostStatus;
   source: PostSource;
   topicCategory?: string;
-  scheduledDate?: string;
-  postedDate?: string;
+  scheduledDate?: string | null;
+  postedDate?: string | null;
   notes?: string;
   createdAt: string;
   updatedAt: string;
