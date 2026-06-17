@@ -44,3 +44,8 @@ next-env.d.ts
 
 # local data store (JSON-based DB — runtime state, not source)
 /data/
+
+# sqlite runtime files — schema + migrations are source, the db file is not
+# (Prisma 7 resolves the datasource URL relative to prisma.config.ts, i.e. project root)
+/dev.db
+/dev.db-journal

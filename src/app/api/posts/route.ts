@@ -16,6 +16,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: `Invalid status: ${statusParam}` }, { status: 400 });
   }
 
-  const posts = statusParam ? db.posts.findByStatus(statusParam) : db.posts.findAll();
+  const posts = statusParam ? await db.posts.findByStatus(statusParam) : await db.posts.findAll();
   return NextResponse.json(posts);
 }

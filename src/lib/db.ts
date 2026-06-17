@@ -1,93 +1,162 @@
-import fs from 'fs';
-import path from 'path';
-import { Post, PostStatus, Settings } from '@/types';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaClient } from '@/generated/prisma/client';
+import { Post, PostContent, PostStatus, Settings } from '@/types';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const POSTS_FILE = path.join(DATA_DIR, 'posts.json');
-const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
+const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? 'file:./dev.db' });
 
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+// Reuse a single PrismaClient across hot reloads in dev — avoids exhausting
+// SQLite connections when Next.js recompiles modules.
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+const SETTINGS_ID = 'global';
+
+type PostRow = {
+  id: string;
+  rawInput: string;
+  format: string;
+  title: string;
+  content: string;
+  imageStrategy: string;
+  hashtags: string;
+  status: string;
+  source: string;
+  topicCategory: string | null;
+  scheduledDate: Date | null;
+  postedDate: Date | null;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+function toPost(row: PostRow): Post {
+  return {
+    id: row.id,
+    rawInput: row.rawInput,
+    format: row.format as Post['format'],
+    title: row.title,
+    content: JSON.parse(row.content) as PostContent,
+    imageStrategy: row.imageStrategy,
+    hashtags: JSON.parse(row.hashtags) as string[],
+    status: row.status as PostStatus,
+    source: row.source as Post['source'],
+    topicCategory: row.topicCategory ?? undefined,
+    scheduledDate: row.scheduledDate?.toISOString(),
+    postedDate: row.postedDate?.toISOString(),
+    notes: row.notes ?? undefined,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
 }
 
-function readPosts(): Post[] {
-  ensureDataDir();
-  if (!fs.existsSync(POSTS_FILE)) return [];
-  return JSON.parse(fs.readFileSync(POSTS_FILE, 'utf-8'));
+function fromPost(post: Post) {
+  return {
+    id: post.id,
+    rawInput: post.rawInput,
+    format: post.format,
+    title: post.title,
+    content: JSON.stringify(post.content),
+    imageStrategy: post.imageStrategy,
+    hashtags: JSON.stringify(post.hashtags),
+    status: post.status,
+    source: post.source,
+    topicCategory: post.topicCategory ?? null,
+    scheduledDate: post.scheduledDate ? new Date(post.scheduledDate) : null,
+    postedDate: post.postedDate ? new Date(post.postedDate) : null,
+    notes: post.notes ?? null,
+  };
 }
 
-function writePosts(posts: Post[]): void {
-  ensureDataDir();
-  fs.writeFileSync(POSTS_FILE, JSON.stringify(posts, null, 2));
-}
-
-function readSettings(): Settings {
-  ensureDataDir();
-  if (!fs.existsSync(SETTINGS_FILE)) return { weeklyTarget: 1 };
-  return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
-}
-
-function writeSettings(settings: Settings): void {
-  ensureDataDir();
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+function partialFromPost(updates: Partial<Post>) {
+  const data: Record<string, unknown> = {};
+  if (updates.rawInput !== undefined) data.rawInput = updates.rawInput;
+  if (updates.format !== undefined) data.format = updates.format;
+  if (updates.title !== undefined) data.title = updates.title;
+  if (updates.content !== undefined) data.content = JSON.stringify(updates.content);
+  if (updates.imageStrategy !== undefined) data.imageStrategy = updates.imageStrategy;
+  if (updates.hashtags !== undefined) data.hashtags = JSON.stringify(updates.hashtags);
+  if (updates.status !== undefined) data.status = updates.status;
+  if (updates.source !== undefined) data.source = updates.source;
+  if (updates.topicCategory !== undefined) data.topicCategory = updates.topicCategory;
+  if (updates.scheduledDate !== undefined) {
+    data.scheduledDate = updates.scheduledDate ? new Date(updates.scheduledDate) : null;
+  }
+  if (updates.postedDate !== undefined) {
+    data.postedDate = updates.postedDate ? new Date(updates.postedDate) : null;
+  }
+  if (updates.notes !== undefined) data.notes = updates.notes;
+  return data;
 }
 
 export const db = {
   posts: {
-    findAll(): Post[] {
-      return readPosts();
+    async findAll(): Promise<Post[]> {
+      const rows = await prisma.post.findMany({ orderBy: { createdAt: 'desc' } });
+      return rows.map(toPost);
     },
 
-    findById(id: string): Post | undefined {
-      return readPosts().find((p) => p.id === id);
+    async findById(id: string): Promise<Post | null> {
+      const row = await prisma.post.findUnique({ where: { id } });
+      return row ? toPost(row) : null;
     },
 
-    findByStatus(status: PostStatus): Post[] {
-      return readPosts().filter((p) => p.status === status);
-    },
-
-    findByWeek(weekStart: Date, weekEnd: Date): Post[] {
-      return readPosts().filter((p) => {
-        if (!p.scheduledDate) return false;
-        const d = new Date(p.scheduledDate);
-        return d >= weekStart && d <= weekEnd;
+    async findByStatus(status: PostStatus): Promise<Post[]> {
+      const rows = await prisma.post.findMany({
+        where: { status },
+        orderBy: { createdAt: 'desc' },
       });
+      return rows.map(toPost);
     },
 
-    create(post: Post): Post {
-      const posts = readPosts();
-      posts.unshift(post);
-      writePosts(posts);
-      return post;
+    async findByWeek(weekStart: Date, weekEnd: Date): Promise<Post[]> {
+      const rows = await prisma.post.findMany({
+        where: { scheduledDate: { gte: weekStart, lte: weekEnd } },
+        orderBy: { scheduledDate: 'asc' },
+      });
+      return rows.map(toPost);
     },
 
-    update(id: string, updates: Partial<Post>): Post | null {
-      const posts = readPosts();
-      const idx = posts.findIndex((p) => p.id === id);
-      if (idx === -1) return null;
-      posts[idx] = { ...posts[idx], ...updates, updatedAt: new Date().toISOString() };
-      writePosts(posts);
-      return posts[idx];
+    async create(post: Post): Promise<Post> {
+      const row = await prisma.post.create({ data: fromPost(post) });
+      return toPost(row);
     },
 
-    delete(id: string): boolean {
-      const posts = readPosts();
-      const filtered = posts.filter((p) => p.id !== id);
-      if (filtered.length === posts.length) return false;
-      writePosts(filtered);
-      return true;
+    async update(id: string, updates: Partial<Post>): Promise<Post | null> {
+      try {
+        const row = await prisma.post.update({
+          where: { id },
+          data: partialFromPost(updates),
+        });
+        return toPost(row);
+      } catch {
+        return null;
+      }
+    },
+
+    async delete(id: string): Promise<boolean> {
+      try {
+        await prisma.post.delete({ where: { id } });
+        return true;
+      } catch {
+        return false;
+      }
     },
   },
 
   settings: {
-    get(): Settings {
-      return readSettings();
+    async get(): Promise<Settings> {
+      const row = await prisma.weeklyTarget.findUnique({ where: { id: SETTINGS_ID } });
+      return { weeklyTarget: row?.postsPerWeek ?? 1 };
     },
-    update(updates: Partial<Settings>): Settings {
-      const current = readSettings();
-      const updated = { ...current, ...updates };
-      writeSettings(updated);
-      return updated;
+
+    async update(updates: Partial<Settings>): Promise<Settings> {
+      const row = await prisma.weeklyTarget.upsert({
+        where: { id: SETTINGS_ID },
+        create: { id: SETTINGS_ID, postsPerWeek: updates.weeklyTarget ?? 1 },
+        update: updates.weeklyTarget !== undefined ? { postsPerWeek: updates.weeklyTarget } : {},
+      });
+      return { weeklyTarget: row.postsPerWeek };
     },
   },
 };
