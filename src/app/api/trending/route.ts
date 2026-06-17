@@ -6,8 +6,17 @@ import { db } from '@/lib/db';
 import { Post, TrendingTopic } from '@/types';
 import { createId } from '@/lib/id';
 import { trendingRequestSchema, formatZodError } from '@/lib/validation';
+import { checkRateLimit, rateLimitResponseInit } from '@/lib/rate-limit';
 
 export async function GET(): Promise<NextResponse> {
+  const limit = checkRateLimit('trending-get', 10, 60_000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests — slow down and try again shortly.' },
+      rateLimitResponseInit(limit.retryAfterSeconds),
+    );
+  }
+
   try {
     const ctx = loadProfileContext();
     const [topics, researchPrompt] = await Promise.all([
@@ -22,6 +31,14 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const limit = checkRateLimit('trending-post', 10, 60_000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests — slow down and try again shortly.' },
+      rateLimitResponseInit(limit.retryAfterSeconds),
+    );
+  }
+
   try {
     const raw = await req.json();
     const result = trendingRequestSchema.safeParse(raw);

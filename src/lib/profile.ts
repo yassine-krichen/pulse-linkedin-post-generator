@@ -16,7 +16,18 @@ export interface ProfileContext {
   combined: string;
 }
 
+let cached: ProfileContext | null = null;
+
+// Every pipeline/regenerate/trending call was re-reading 4 files off disk.
+// These files only change when the user edits their profile/examples by
+// hand, so cache for the lifetime of the process.
 export function loadProfileContext(): ProfileContext {
+  if (cached) return cached;
+  cached = readProfileContext();
+  return cached;
+}
+
+function readProfileContext(): ProfileContext {
   const profilePath = path.join(CONTENT_SYSTEM_DIR, 'PROFILE.md');
   const examplePostPath = path.join(CONTENT_SYSTEM_DIR, 'examples', 'example-post-01.md');
   const exampleCarouselPath = path.join(CONTENT_SYSTEM_DIR, 'examples', 'example-carousel-01.md');

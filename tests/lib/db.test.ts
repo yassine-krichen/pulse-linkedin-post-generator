@@ -49,9 +49,22 @@ describe('db.posts', () => {
     await db.posts.create(ready);
     createdIds.push(draft.id, ready.id);
 
-    const readyPosts = await db.posts.findByStatus('ready');
+    const { posts: readyPosts, total } = await db.posts.findByStatus('ready');
     expect(readyPosts.map((p) => p.id)).toContain(ready.id);
     expect(readyPosts.map((p) => p.id)).not.toContain(draft.id);
+    expect(total).toBeGreaterThanOrEqual(1);
+  });
+
+  it('paginates findAll with limit and offset', async () => {
+    const a = buildPost();
+    const b = buildPost();
+    await db.posts.create(a);
+    await db.posts.create(b);
+    createdIds.push(a.id, b.id);
+
+    const page = await db.posts.findAll({ limit: 1, offset: 0 });
+    expect(page.posts).toHaveLength(1);
+    expect(page.total).toBeGreaterThanOrEqual(2);
   });
 
   it('updates only the provided fields and bumps updatedAt', async () => {

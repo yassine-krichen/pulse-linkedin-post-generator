@@ -38,11 +38,33 @@ describe('GET /api/posts', () => {
 
     const req = new NextRequest('http://localhost/api/posts?status=ready');
     const res = await listPosts(req);
-    const body: Post[] = await res.json();
+    const body: { posts: Post[]; total: number } = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body.some((p) => p.id === ready.id)).toBe(true);
-    expect(body.every((p) => p.status === 'ready')).toBe(true);
+    expect(body.posts.some((p) => p.id === ready.id)).toBe(true);
+    expect(body.posts.every((p) => p.status === 'ready')).toBe(true);
+    expect(body.total).toBeGreaterThanOrEqual(1);
+  });
+
+  it('paginates with limit and offset', async () => {
+    const a = buildPost({ status: 'ready' });
+    const b = buildPost({ status: 'ready' });
+    await db.posts.create(a);
+    await db.posts.create(b);
+    createdIds.push(a.id, b.id);
+
+    const req = new NextRequest('http://localhost/api/posts?status=ready&limit=1&offset=0');
+    const res = await listPosts(req);
+    const body: { posts: Post[]; total: number } = await res.json();
+
+    expect(body.posts).toHaveLength(1);
+    expect(body.total).toBeGreaterThanOrEqual(2);
+  });
+
+  it('rejects a negative offset', async () => {
+    const req = new NextRequest('http://localhost/api/posts?offset=-1');
+    const res = await listPosts(req);
+    expect(res.status).toBe(400);
   });
 
   it('returns 400 for an invalid status value', async () => {

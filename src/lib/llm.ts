@@ -40,14 +40,22 @@ function nextGroqModel(): LLMModel | null {
   return createGroq({ apiKey: key })(model) as LLMModel;
 }
 
-function isRateLimitError(err: unknown): boolean {
+// Covers both hard rate limits (429/quota) and transient provider overload
+// (503/"high demand") — free-tier Gemini returns the latter under load, and
+// without this the key-rotation loop below would throw on the first key
+// instead of trying the next one.
+export function isRateLimitError(err: unknown): boolean {
   const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
   return (
     msg.includes("429") ||
     msg.includes("rate limit") ||
     msg.includes("quota") ||
     msg.includes("resource_exhausted") ||
-    msg.includes("too many requests")
+    msg.includes("too many requests") ||
+    msg.includes("503") ||
+    msg.includes("overloaded") ||
+    msg.includes("high demand") ||
+    msg.includes("unavailable")
   );
 }
 

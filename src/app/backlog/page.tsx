@@ -17,12 +17,16 @@ export default function BacklogPage() {
   async function load() {
     setLoading(true);
     const res = await fetch('/api/posts');
-    const data: Post[] = await res.json();
-    setPosts(data.filter((p) => p.status !== 'posted'));
+    const body: { posts: Post[] } = await res.json();
+    setPosts(body.posts.filter((p) => p.status !== 'posted'));
     setLoading(false);
   }
 
   useEffect(() => {
+    // `load` is also reused by the mutation handlers below to refresh the
+    // list — the compiler's effect analysis flags that indirection even
+    // though this is the documented fetch-on-mount pattern.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, []);
 

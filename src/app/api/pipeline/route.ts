@@ -7,8 +7,17 @@ import { db } from '@/lib/db';
 import { Post } from '@/types';
 import { createId } from '@/lib/id';
 import { pipelineRequestSchema, formatZodError } from '@/lib/validation';
+import { checkRateLimit, rateLimitResponseInit } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
+  const limit = checkRateLimit('pipeline', 10, 60_000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests — slow down and try again shortly.' },
+      rateLimitResponseInit(limit.retryAfterSeconds),
+    );
+  }
+
   try {
     const body = await req.json();
     const result = pipelineRequestSchema.safeParse(body);
