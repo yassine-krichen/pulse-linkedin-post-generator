@@ -53,6 +53,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       id: createId(),
       rawInput: input,
       format: 'standard',
+      contentType: 'opinion',
       title: generated.title,
       content: generated.content,
       imageStrategy: generated.imageStrategy,

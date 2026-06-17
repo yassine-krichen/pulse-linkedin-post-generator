@@ -26,6 +26,13 @@ IMAGE STRATEGY — pick exactly one:
 
 const TOPIC_CATEGORIES = `Systems | Full-Stack | ML/AI | DevOps | Cloud | Lessons | Certifications | Projects | Industry | Tutorial`;
 
+export const TONE_INSTRUCTIONS: Record<string, string | undefined> = {
+  default: undefined,
+  casual: 'Make this more casual and conversational — like talking to a friend who is also an engineer. Still no hype words.',
+  punchier: 'Make this punchier and more concise. Cut anything that does not earn its place. Shorter sentences.',
+  technical: 'Lean more technical. Assume a senior engineer audience and use precise terminology without over-explaining.',
+};
+
 // ── Standard Post ──────────────────────────────────────────────────────────────
 
 interface StandardPostRaw {
@@ -44,6 +51,7 @@ export async function generateStandardPost(
   input: string,
   contentType: ContentType,
   ctx: ProfileContext,
+  toneInstruction?: string,
 ): Promise<{ content: StandardPostContent; imageStrategy: string; hashtags: string[]; topicCategory: string; title: string }> {
   const SYSTEM = `You are writing a LinkedIn post for a software engineer. You have their full profile context and examples of their voice. Produce content that sounds genuinely like them — not a generic tech influencer.`;
 
@@ -53,6 +61,8 @@ ${ctx.combined}
 ${BRAND_CONSTRAINTS}
 
 ${ctx.examples ? `VOICE EXAMPLES (match this tone):\n${ctx.examples}` : ''}
+
+${toneInstruction ? `ADDITIONAL DIRECTION FOR THIS REWRITE:\n${toneInstruction}` : ''}
 
 ---
 
@@ -123,6 +133,7 @@ export async function generateCarouselPost(
   input: string,
   contentType: ContentType,
   ctx: ProfileContext,
+  toneInstruction?: string,
 ): Promise<{ content: CarouselContent; imageStrategy: string; hashtags: string[]; topicCategory: string; title: string }> {
   const SYSTEM = `You are creating a LinkedIn carousel post for a software engineer. Carousels work as visual slide decks. Each slide must stand alone but flow logically. Minimal text per slide — carousels are scanned, not read.`;
 
@@ -130,6 +141,8 @@ export async function generateCarouselPost(
 ${ctx.combined}
 
 ${BRAND_CONSTRAINTS}
+
+${toneInstruction ? `ADDITIONAL DIRECTION FOR THIS REWRITE:\n${toneInstruction}` : ''}
 
 ---
 
@@ -199,6 +212,7 @@ export async function generateImagePost(
   input: string,
   contentType: ContentType,
   ctx: ProfileContext,
+  toneInstruction?: string,
 ): Promise<{ content: ImagePostContent; imageStrategy: string; hashtags: string[]; topicCategory: string; title: string }> {
   const SYSTEM = `You are creating a LinkedIn image post for a software engineer. The image is the focus — the caption is short and punchy (1-3 sentences max).`;
 
@@ -206,6 +220,8 @@ export async function generateImagePost(
 ${ctx.combined}
 
 ${BRAND_CONSTRAINTS}
+
+${toneInstruction ? `ADDITIONAL DIRECTION FOR THIS REWRITE:\n${toneInstruction}` : ''}
 
 ---
 
@@ -255,13 +271,14 @@ export async function generatePost(
   format: PostFormat,
   contentType: ContentType,
   ctx: ProfileContext,
+  toneInstruction?: string,
 ) {
   switch (format) {
     case 'carousel':
-      return generateCarouselPost(input, contentType, ctx);
+      return generateCarouselPost(input, contentType, ctx, toneInstruction);
     case 'image':
-      return generateImagePost(input, contentType, ctx);
+      return generateImagePost(input, contentType, ctx, toneInstruction);
     default:
-      return generateStandardPost(input, contentType, ctx);
+      return generateStandardPost(input, contentType, ctx, toneInstruction);
   }
 }

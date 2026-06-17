@@ -36,6 +36,7 @@ export interface Post {
   id: string;
   rawInput: string;
   format: PostFormat;
+  contentType: ContentType;
   title: string;
   content: PostContent;
   imageStrategy: string;

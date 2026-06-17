@@ -8,6 +8,7 @@ function buildPost(overrides: Partial<Post> = {}): Post {
     id: `test-${crypto.randomUUID()}`,
     rawInput: 'I migrated the JSON file store to Prisma + SQLite.',
     format: 'standard',
+    contentType: 'built',
     title: 'DB migration test post',
     content: { hook: 'h', body: 'b', takeaway: 't', cta: 'c', fullText: 'h b t c' },
     imageStrategy: 'No image needed — copy stands alone',

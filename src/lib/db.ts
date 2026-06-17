@@ -16,6 +16,7 @@ type PostRow = {
   id: string;
   rawInput: string;
   format: string;
+  contentType: string;
   title: string;
   content: string;
   imageStrategy: string;
@@ -35,6 +36,7 @@ function toPost(row: PostRow): Post {
     id: row.id,
     rawInput: row.rawInput,
     format: row.format as Post['format'],
+    contentType: row.contentType as Post['contentType'],
     title: row.title,
     content: JSON.parse(row.content) as PostContent,
     imageStrategy: row.imageStrategy,
@@ -55,6 +57,7 @@ function fromPost(post: Post) {
     id: post.id,
     rawInput: post.rawInput,
     format: post.format,
+    contentType: post.contentType,
     title: post.title,
     content: JSON.stringify(post.content),
     imageStrategy: post.imageStrategy,
@@ -72,6 +75,7 @@ function partialFromPost(updates: Partial<Post>) {
   const data: Record<string, unknown> = {};
   if (updates.rawInput !== undefined) data.rawInput = updates.rawInput;
   if (updates.format !== undefined) data.format = updates.format;
+  if (updates.contentType !== undefined) data.contentType = updates.contentType;
   if (updates.title !== undefined) data.title = updates.title;
   if (updates.content !== undefined) data.content = JSON.stringify(updates.content);
   if (updates.imageStrategy !== undefined) data.imageStrategy = updates.imageStrategy;

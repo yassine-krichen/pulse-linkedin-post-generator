@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
   Copy,
@@ -25,7 +26,17 @@ import {
   Pencil,
   Save,
   X,
+  RefreshCw,
 } from 'lucide-react';
+
+type RegenerateTone = 'default' | 'casual' | 'punchier' | 'technical';
+
+const TONE_LABELS: Record<RegenerateTone, string> = {
+  default: 'Default',
+  casual: 'Casual',
+  punchier: 'Punchier',
+  technical: 'Technical',
+};
 
 interface PostCardProps {
   post: Post;
@@ -336,6 +347,30 @@ export function PostCard({
   const [draftContent, setDraftContent] = useState<PostContent>(post.content);
   const [draftHashtags, setDraftHashtags] = useState(post.hashtags.join(', '));
   const [draftImageStrategy, setDraftImageStrategy] = useState(post.imageStrategy);
+  const [tone, setTone] = useState<RegenerateTone>('default');
+  const [regenerating, setRegenerating] = useState(false);
+
+  async function handleRegenerate() {
+    setRegenerating(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/regenerate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tone }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Failed to regenerate');
+      }
+      const updated: Post = await res.json();
+      onUpdate?.(updated);
+      toast.success('Regenerated');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to regenerate');
+    } finally {
+      setRegenerating(false);
+    }
+  }
 
   function startEditing() {
     setDraftContent(post.content);
@@ -507,7 +542,29 @@ export function PostCard({
           </div>
         ) : (
           showActions && (
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
+              <Select value={tone} onValueChange={(v) => setTone(v as RegenerateTone)}>
+                <SelectTrigger size="sm" className="text-xs h-7">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(TONE_LABELS) as RegenerateTone[]).map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {TONE_LABELS[t]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs gap-1.5"
+                disabled={regenerating}
+                onClick={handleRegenerate}
+              >
+                <RefreshCw className={`w-3 h-3 ${regenerating ? 'animate-spin' : ''}`} />
+                {regenerating ? 'Regenerating...' : 'Regenerate'}
+              </Button>
               {post.status === 'draft' && onSaveToBacklog && (
                 <Button
                   size="sm"

@@ -25,22 +25,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ evaluation, classification: null, post: null });
     }
 
+    const contentType = evaluation.classifiedAs ?? 'learned';
+
     // Step 2: Classify
-    const classification = await classify(input, evaluation.classifiedAs ?? 'learned', ctx);
+    const classification = await classify(input, contentType, ctx);
 
     // Step 3: Generate
-    const generated = await generatePost(
-      input,
-      classification.format,
-      evaluation.classifiedAs ?? 'learned',
-      ctx,
-    );
+    const generated = await generatePost(input, classification.format, contentType, ctx);
 
     const now = new Date().toISOString();
     const post: Post = {
       id: createId(),
       rawInput: input,
       format: classification.format,
+      contentType,
       title: generated.title,
       content: generated.content,
       imageStrategy: generated.imageStrategy,
