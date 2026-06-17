@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       updatedAt: now,
     };
 
-    db.posts.create(post);
+    await db.posts.create(post);
 
     return NextResponse.json({ evaluation, classification, post });
   } catch (err) {

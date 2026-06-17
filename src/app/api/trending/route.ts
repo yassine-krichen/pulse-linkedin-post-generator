@@ -60,7 +60,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       updatedAt: now,
     };
 
-    db.posts.create(post);
+    await db.posts.create(post);
     return NextResponse.json(post);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Generation failed';
