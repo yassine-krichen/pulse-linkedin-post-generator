@@ -11,6 +11,7 @@ function buildPost(overrides: Partial<Post> = {}): Post {
     id: `route-test-${crypto.randomUUID()}`,
     rawInput: 'Testing the posts API route against a real database.',
     format: 'standard',
+    contentType: 'built',
     title: 'Route test post',
     content: { hook: 'h', body: 'b', takeaway: 't', cta: 'c', fullText: 'h b t c' },
     imageStrategy: 'No image needed — copy stands alone',
