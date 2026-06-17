@@ -161,6 +161,7 @@ export default function GeneratePage() {
           post={post}
           onSaveToBacklog={post.status === 'draft' ? handleSaveToBacklog : undefined}
           onMarkAsPosted={post.status !== 'posted' ? handleMarkAsPosted : undefined}
+          onUpdate={setPost}
         />
       )}
     </div>
