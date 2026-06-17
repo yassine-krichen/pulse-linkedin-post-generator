@@ -3,11 +3,20 @@ import { db } from '@/lib/db';
 import { loadProfileContext } from '@/lib/profile';
 import { generatePost, TONE_INSTRUCTIONS } from '@/lib/prompts/generate';
 import { regenerateRequestSchema, formatZodError } from '@/lib/validation';
+import { checkRateLimit, rateLimitResponseInit } from '@/lib/rate-limit';
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const limit = checkRateLimit('regenerate', 10, 60_000);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests — slow down and try again shortly.' },
+      rateLimitResponseInit(limit.retryAfterSeconds),
+    );
+  }
+
   const { id } = await params;
 
   const body = await req.json().catch(() => ({}));
