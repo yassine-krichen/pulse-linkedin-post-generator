@@ -6,29 +6,31 @@ import { loadProfileContext } from '@/lib/profile';
 import { db } from '@/lib/db';
 import { Post } from '@/types';
 import { createId } from '@/lib/id';
+import { pipelineRequestSchema, formatZodError } from '@/lib/validation';
 
 export async function POST(req: NextRequest) {
   try {
-    const { input } = await req.json();
-
-    if (!input || typeof input !== 'string' || input.trim().length < 10) {
-      return NextResponse.json({ error: 'Input too short or missing.' }, { status: 400 });
+    const body = await req.json();
+    const result = pipelineRequestSchema.safeParse(body);
+    if (!result.success) {
+      return NextResponse.json({ error: formatZodError(result.error) }, { status: 400 });
     }
+    const { input } = result.data;
 
     const ctx = loadProfileContext();
 
     // Step 1: Evaluate
-    const evaluation = await evaluate(input.trim(), ctx);
+    const evaluation = await evaluate(input, ctx);
     if (!evaluation.worthy) {
       return NextResponse.json({ evaluation, classification: null, post: null });
     }
 
     // Step 2: Classify
-    const classification = await classify(input.trim(), evaluation.classifiedAs ?? 'learned', ctx);
+    const classification = await classify(input, evaluation.classifiedAs ?? 'learned', ctx);
 
     // Step 3: Generate
     const generated = await generatePost(
-      input.trim(),
+      input,
       classification.format,
       evaluation.classifiedAs ?? 'learned',
       ctx,
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
     const now = new Date().toISOString();
     const post: Post = {
       id: createId(),
-      rawInput: input.trim(),
+      rawInput: input,
       format: classification.format,
       title: generated.title,
       content: generated.content,
