@@ -8,6 +8,12 @@ function isPostStatus(value: string): value is PostStatus {
   return VALID_STATUSES.includes(value as PostStatus);
 }
 
+function parsePositiveInt(value: string | null): number | undefined {
+  if (value === null) return undefined;
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 0 ? n : NaN;
+}
+
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
   const statusParam = searchParams.get('status');
@@ -16,6 +22,15 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: `Invalid status: ${statusParam}` }, { status: 400 });
   }
 
-  const posts = statusParam ? await db.posts.findByStatus(statusParam) : await db.posts.findAll();
-  return NextResponse.json(posts);
+  const limit = parsePositiveInt(searchParams.get('limit'));
+  const offset = parsePositiveInt(searchParams.get('offset'));
+  if (Number.isNaN(limit) || Number.isNaN(offset)) {
+    return NextResponse.json({ error: 'limit and offset must be non-negative integers' }, { status: 400 });
+  }
+
+  const result = statusParam
+    ? await db.posts.findByStatus(statusParam, { limit, offset })
+    : await db.posts.findAll({ limit, offset });
+
+  return NextResponse.json(result);
 }

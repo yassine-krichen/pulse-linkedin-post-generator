@@ -93,11 +93,24 @@ function partialFromPost(updates: Partial<Post>) {
   return data;
 }
 
+export interface PagingOptions {
+  limit?: number;
+  offset?: number;
+}
+
+export interface PagedPosts {
+  posts: Post[];
+  total: number;
+}
+
 export const db = {
   posts: {
-    async findAll(): Promise<Post[]> {
-      const rows = await prisma.post.findMany({ orderBy: { createdAt: 'desc' } });
-      return rows.map(toPost);
+    async findAll(opts: PagingOptions = {}): Promise<PagedPosts> {
+      const [rows, total] = await Promise.all([
+        prisma.post.findMany({ orderBy: { createdAt: 'desc' }, take: opts.limit, skip: opts.offset }),
+        prisma.post.count(),
+      ]);
+      return { posts: rows.map(toPost), total };
     },
 
     async findById(id: string): Promise<Post | null> {
@@ -105,12 +118,13 @@ export const db = {
       return row ? toPost(row) : null;
     },
 
-    async findByStatus(status: PostStatus): Promise<Post[]> {
-      const rows = await prisma.post.findMany({
-        where: { status },
-        orderBy: { createdAt: 'desc' },
-      });
-      return rows.map(toPost);
+    async findByStatus(status: PostStatus, opts: PagingOptions = {}): Promise<PagedPosts> {
+      const where = { status };
+      const [rows, total] = await Promise.all([
+        prisma.post.findMany({ where, orderBy: { createdAt: 'desc' }, take: opts.limit, skip: opts.offset }),
+        prisma.post.count({ where }),
+      ]);
+      return { posts: rows.map(toPost), total };
     },
 
     async findByWeek(weekStart: Date, weekEnd: Date): Promise<Post[]> {
