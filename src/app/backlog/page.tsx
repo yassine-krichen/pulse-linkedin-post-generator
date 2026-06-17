@@ -100,6 +100,7 @@ export default function BacklogPage() {
             onSaveToBacklog={post.status === 'draft' ? handleMarkReady : undefined}
             onMarkAsPosted={handleMarkPosted}
             onDelete={handleDelete}
+            onUpdate={load}
           />
         ))}
       </div>

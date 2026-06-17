@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Post, StandardPostContent, CarouselContent, ImagePostContent } from '@/types';
+import { Post, PostContent, StandardPostContent, CarouselContent, ImagePostContent } from '@/types';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import {
@@ -20,6 +22,9 @@ import {
   FileText,
   Layers,
   ImageIcon,
+  Pencil,
+  Save,
+  X,
 } from 'lucide-react';
 
 interface PostCardProps {
@@ -27,7 +32,36 @@ interface PostCardProps {
   onSaveToBacklog?: (post: Post) => void;
   onMarkAsPosted?: (post: Post) => void;
   onDelete?: (post: Post) => void;
+  onUpdate?: (post: Post) => void;
   showActions?: boolean;
+}
+
+function hashtagLine(hashtags: string[]): string {
+  return hashtags.map((h) => `#${h.replace(/^#/, '')}`).join(' ');
+}
+
+function recomputeContent(format: Post['format'], content: PostContent, hashtags: string[]): PostContent {
+  if (format === 'standard') {
+    const c = content as StandardPostContent;
+    return {
+      ...c,
+      fullText: [c.hook, c.body, c.takeaway, c.cta, hashtagLine(hashtags)].filter(Boolean).join('\n\n'),
+    };
+  }
+  if (format === 'image') {
+    const c = content as ImagePostContent;
+    return {
+      ...c,
+      fullText: [c.caption, hashtagLine(hashtags)].filter(Boolean).join('\n\n'),
+    };
+  }
+  const c = content as CarouselContent;
+  return {
+    ...c,
+    fullText: c.slides
+      .map((s) => [`Slide ${s.slideNumber}: ${s.title}`, ...s.points.map((p) => `- ${p}`)].join('\n'))
+      .join('\n\n'),
+  };
 }
 
 function copyToClipboard(text: string) {
@@ -70,6 +104,105 @@ function StandardView({ content }: { content: StandardPostContent }) {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function StandardEdit({
+  content,
+  onChange,
+}: {
+  content: StandardPostContent;
+  onChange: (content: StandardPostContent) => void;
+}) {
+  return (
+    <div className="space-y-3 text-sm">
+      {(['hook', 'body', 'takeaway', 'cta'] as const).map((field) => (
+        <div key={field}>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 font-mono">
+            {field}
+          </p>
+          <Textarea
+            value={content[field]}
+            onChange={(e) => onChange({ ...content, [field]: e.target.value })}
+            className="min-h-16 resize-none text-sm bg-muted/20 border-border/60"
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CarouselEdit({
+  content,
+  onChange,
+}: {
+  content: CarouselContent;
+  onChange: (content: CarouselContent) => void;
+}) {
+  function updateSlide(index: number, field: 'title' | 'points', value: string) {
+    const slides = content.slides.map((slide, i) =>
+      i === index
+        ? { ...slide, [field]: field === 'points' ? value.split('\n').filter(Boolean) : value }
+        : slide,
+    );
+    onChange({ ...content, slides });
+  }
+
+  return (
+    <div className="space-y-4 text-sm">
+      {content.slides.map((slide, i) => (
+        <div key={i} className="border border-border/60 rounded-lg p-3 space-y-2 bg-muted/20">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">
+            Slide {slide.slideNumber}
+          </p>
+          <Input
+            value={slide.title}
+            onChange={(e) => updateSlide(i, 'title', e.target.value)}
+            className="text-sm bg-background"
+            placeholder="Slide title"
+          />
+          <Textarea
+            value={slide.points.join('\n')}
+            onChange={(e) => updateSlide(i, 'points', e.target.value)}
+            className="min-h-20 resize-none text-sm bg-background font-mono"
+            placeholder="One point per line"
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ImageEdit({
+  content,
+  onChange,
+}: {
+  content: ImagePostContent;
+  onChange: (content: ImagePostContent) => void;
+}) {
+  return (
+    <div className="space-y-3 text-sm">
+      <div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 font-mono">
+          Caption
+        </p>
+        <Textarea
+          value={content.caption}
+          onChange={(e) => onChange({ ...content, caption: e.target.value })}
+          className="min-h-20 resize-none text-sm bg-muted/20 border-border/60"
+        />
+      </div>
+      <div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 font-mono">
+          Gemini Image Prompt
+        </p>
+        <Textarea
+          value={content.imagePrompt ?? ''}
+          onChange={(e) => onChange({ ...content, imagePrompt: e.target.value })}
+          className="min-h-20 resize-none text-sm bg-muted/20 border-border/60 font-mono"
+        />
+      </div>
     </div>
   );
 }
@@ -193,9 +326,52 @@ export function PostCard({
   onSaveToBacklog,
   onMarkAsPosted,
   onDelete,
+  onUpdate,
   showActions = true,
 }: PostCardProps) {
   const fullText = getFullText(post);
+
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [draftContent, setDraftContent] = useState<PostContent>(post.content);
+  const [draftHashtags, setDraftHashtags] = useState(post.hashtags.join(', '));
+  const [draftImageStrategy, setDraftImageStrategy] = useState(post.imageStrategy);
+
+  function startEditing() {
+    setDraftContent(post.content);
+    setDraftHashtags(post.hashtags.join(', '));
+    setDraftImageStrategy(post.imageStrategy);
+    setEditing(true);
+  }
+
+  async function handleSaveEdit() {
+    const hashtags = draftHashtags
+      .split(',')
+      .map((h) => h.trim().replace(/^#/, ''))
+      .filter(Boolean);
+    const content = recomputeContent(post.format, draftContent, hashtags);
+
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, hashtags, imageStrategy: draftImageStrategy }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Failed to save changes');
+      }
+      const updated: Post = await res.json();
+      onUpdate?.(updated);
+      setEditing(false);
+      toast.success('Changes saved');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save changes');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <Card className="border-border/60">
@@ -218,59 +394,119 @@ export function PostCard({
               )}
             </div>
           </div>
-          {fullText && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 text-xs gap-1.5"
-              onClick={() => copyToClipboard(fullText)}
-            >
-              <Copy className="w-3 h-3" />
-              Copy
-            </Button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {showActions && !editing && (
+              <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={startEditing}>
+                <Pencil className="w-3 h-3" />
+                Edit
+              </Button>
+            )}
+            {!editing && fullText && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs gap-1.5"
+                onClick={() => copyToClipboard(fullText)}
+              >
+                <Copy className="w-3 h-3" />
+                Copy
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {post.format === 'standard' && (
-          <StandardView content={post.content as StandardPostContent} />
+        {editing ? (
+          <>
+            {post.format === 'standard' && (
+              <StandardEdit
+                content={draftContent as StandardPostContent}
+                onChange={setDraftContent}
+              />
+            )}
+            {post.format === 'carousel' && (
+              <CarouselEdit content={draftContent as CarouselContent} onChange={setDraftContent} />
+            )}
+            {post.format === 'image' && (
+              <ImageEdit content={draftContent as ImagePostContent} onChange={setDraftContent} />
+            )}
+          </>
+        ) : (
+          <>
+            {post.format === 'standard' && (
+              <StandardView content={post.content as StandardPostContent} />
+            )}
+            {post.format === 'carousel' && (
+              <CarouselView content={post.content as CarouselContent} />
+            )}
+            {post.format === 'image' && <ImageView content={post.content as ImagePostContent} />}
+          </>
         )}
-        {post.format === 'carousel' && (
-          <CarouselView content={post.content as CarouselContent} />
-        )}
-        {post.format === 'image' && <ImageView content={post.content as ImagePostContent} />}
 
         <Separator className="opacity-30" />
 
         <div className="space-y-2">
           <div className="flex items-start gap-2">
             <Image className="w-3 h-3 mt-0.5 text-muted-foreground/60 shrink-0" />
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-0.5 font-mono">
                 Image guidance
               </p>
-              <p className="text-sm text-muted-foreground">{post.imageStrategy}</p>
+              {editing ? (
+                <Input
+                  value={draftImageStrategy}
+                  onChange={(e) => setDraftImageStrategy(e.target.value)}
+                  className="text-sm bg-background"
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">{post.imageStrategy}</p>
+              )}
             </div>
           </div>
-          {post.hashtags.length > 0 && (
+          {(editing || post.hashtags.length > 0) && (
             <div className="flex items-start gap-2">
               <Hash className="w-3 h-3 mt-0.5 text-muted-foreground/60 shrink-0" />
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-0.5 font-mono">
                   Hashtags
                 </p>
-                <p className="text-sm text-foreground">
-                  {post.hashtags.map((h) => `#${h.replace(/^#/, '')}`).join(' ')}
-                </p>
+                {editing ? (
+                  <Input
+                    value={draftHashtags}
+                    onChange={(e) => setDraftHashtags(e.target.value)}
+                    placeholder="SystemsDesign, FullStack"
+                    className="text-sm bg-background"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">{hashtagLine(post.hashtags)}</p>
+                )}
               </div>
             </div>
           )}
         </div>
 
-        {showActions && (
-          <>
-            <Separator className="opacity-30" />
+        <Separator className="opacity-30" />
+
+        {editing ? (
+          <div className="flex gap-2 flex-wrap">
+            <Button size="sm" className="text-xs gap-1.5" disabled={saving} onClick={handleSaveEdit}>
+              <Save className="w-3 h-3" />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-xs gap-1.5 text-muted-foreground"
+              disabled={saving}
+              onClick={() => setEditing(false)}
+            >
+              <X className="w-3 h-3" />
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          showActions && (
             <div className="flex gap-2 flex-wrap">
               {post.status === 'draft' && onSaveToBacklog && (
                 <Button
@@ -306,7 +542,7 @@ export function PostCard({
                 </Button>
               )}
             </div>
-          </>
+          )
         )}
       </CardContent>
     </Card>
