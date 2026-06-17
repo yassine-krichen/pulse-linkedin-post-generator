@@ -49,3 +49,5 @@ next-env.d.ts
 # (Prisma 7 resolves the datasource URL relative to prisma.config.ts, i.e. project root)
 /dev.db
 /dev.db-journal
+/test.db
+/test.db-journal
