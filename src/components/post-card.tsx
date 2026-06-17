@@ -15,7 +15,7 @@ import {
   BookmarkPlus,
   CheckCircle2,
   Trash2,
-  Image,
+  Image as ImageGuidanceIcon,
   Hash,
   ChevronLeft,
   ChevronRight,
@@ -483,7 +483,7 @@ export function PostCard({
 
         <div className="space-y-2">
           <div className="flex items-start gap-2">
-            <Image className="w-3 h-3 mt-0.5 text-muted-foreground/60 shrink-0" />
+            <ImageGuidanceIcon className="w-3 h-3 mt-0.5 text-muted-foreground/60 shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-0.5 font-mono">
                 Image guidance
