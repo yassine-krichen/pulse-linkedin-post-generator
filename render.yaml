@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: pulse-linkedin
+    runtime: node
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm start
+    envVars:
+      - key: DATABASE_URL
+        # Free tier: ephemeral (resets on redeploy). Upgrade to paid + add disk below.
+        value: file:./dev.db
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      # Add your API keys in the Render dashboard (Environment tab) — never commit them
+      # Required: at least one of GEMINI_API_KEY_1 or GROQ_API_KEY
+
+# ── Persistent disk (paid tier only, ~$1/month) ───────────────────────────────
+# Uncomment to persist SQLite across restarts and redeploys.
+# Also change DATABASE_URL above to: file:/var/data/prod.db
+#
+#    disk:
+#      name: pulse-db
+#      mountPath: /var/data
+#      sizeGB: 1
