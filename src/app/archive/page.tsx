@@ -156,9 +156,7 @@ export default function ArchivePage() {
   async function loadPage(offset: number) {
     const res = await fetch(`/api/posts?status=posted&limit=${PAGE_SIZE}&offset=${offset}`);
     const body: { posts: Post[]; total: number } = await res.json();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPosts((prev) => (offset === 0 ? body.posts : [...prev, ...body.posts]));
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTotal(body.total);
   }
 
@@ -166,12 +164,12 @@ export default function ArchivePage() {
     const res = await fetch('/api/posts/stats');
     if (res.ok) {
       const data: PostStats = await res.json();
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStats(data);
     }
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     Promise.all([loadPage(0), loadStats()]).finally(() => setLoading(false));
   }, []);
 
