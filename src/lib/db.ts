@@ -1,6 +1,6 @@
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { PrismaClient } from '@/generated/prisma/client';
-import { Post, PostContent, PostStatus, Settings } from '@/types';
+import { Post, PostContent, PostStats, PostStatus, Settings } from '@/types';
 
 const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? 'file:./dev.db' });
 
@@ -27,6 +27,11 @@ type PostRow = {
   scheduledDate: Date | null;
   postedDate: Date | null;
   notes: string | null;
+  impressions: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  wasEdited: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -47,6 +52,11 @@ function toPost(row: PostRow): Post {
     scheduledDate: row.scheduledDate?.toISOString(),
     postedDate: row.postedDate?.toISOString(),
     notes: row.notes ?? undefined,
+    impressions: row.impressions ?? undefined,
+    likes: row.likes ?? undefined,
+    comments: row.comments ?? undefined,
+    shares: row.shares ?? undefined,
+    wasEdited: row.wasEdited,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -90,6 +100,11 @@ function partialFromPost(updates: Partial<Post>) {
     data.postedDate = updates.postedDate ? new Date(updates.postedDate) : null;
   }
   if (updates.notes !== undefined) data.notes = updates.notes;
+  if (updates.impressions !== undefined) data.impressions = updates.impressions;
+  if (updates.likes !== undefined) data.likes = updates.likes;
+  if (updates.comments !== undefined) data.comments = updates.comments;
+  if (updates.shares !== undefined) data.shares = updates.shares;
+  if (updates.wasEdited !== undefined) data.wasEdited = updates.wasEdited;
   return data;
 }
 
@@ -159,6 +174,37 @@ export const db = {
       } catch {
         return false;
       }
+    },
+
+    async stats(): Promise<PostStats> {
+      const [agg, best] = await Promise.all([
+        prisma.post.aggregate({
+          where: { status: 'posted' },
+          _count: { id: true },
+          _sum: { impressions: true, likes: true, comments: true, shares: true },
+        }),
+        prisma.post.findFirst({
+          where: { status: 'posted', impressions: { gt: 0 } },
+          orderBy: { impressions: 'desc' },
+          select: { id: true, title: true, impressions: true },
+        }),
+      ]);
+      const totalImpressions = agg._sum.impressions ?? 0;
+      const totalLikes = agg._sum.likes ?? 0;
+      const totalComments = agg._sum.comments ?? 0;
+      const totalShares = agg._sum.shares ?? 0;
+      return {
+        totalPosts: agg._count.id,
+        totalImpressions,
+        totalLikes,
+        totalComments,
+        totalShares,
+        avgEngagementRate:
+          totalImpressions > 0
+            ? ((totalLikes + totalComments + totalShares) / totalImpressions) * 100
+            : 0,
+        bestPost: best ? { id: best.id, title: best.title, impressions: best.impressions! } : null,
+      };
     },
   },
 

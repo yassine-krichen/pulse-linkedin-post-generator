@@ -47,8 +47,23 @@ export interface Post {
   scheduledDate?: string | null;
   postedDate?: string | null;
   notes?: string;
+  impressions?: number;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  wasEdited?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PostStats {
+  totalPosts: number;
+  totalImpressions: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  avgEngagementRate: number;
+  bestPost: { id: string; title: string; impressions: number } | null;
 }
 
 export interface EvaluationResult {

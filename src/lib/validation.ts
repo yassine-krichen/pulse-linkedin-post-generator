@@ -44,6 +44,10 @@ export const postUpdateSchema = z
     scheduledDate: z.string().datetime().nullable(),
     postedDate: z.string().datetime().nullable(),
     notes: z.string().max(2000),
+    impressions: z.number().int().min(0),
+    likes: z.number().int().min(0),
+    comments: z.number().int().min(0),
+    shares: z.number().int().min(0),
   })
   .partial()
   .strict();
