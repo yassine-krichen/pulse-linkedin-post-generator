@@ -427,6 +427,12 @@ export function PostCard({
                   Trending
                 </Badge>
               )}
+              {post.wasEdited && (
+                <Badge variant="outline" className="text-[10px] gap-1 py-0.5 text-emerald-500/80 border-emerald-500/30">
+                  <CheckCircle2 className="w-2.5 h-2.5" />
+                  Reviewed
+                </Badge>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
