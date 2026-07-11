@@ -10,12 +10,12 @@ services:
         value: file:./dev.db
       - key: NODE_ENV
         value: production
-      - key: GEMINI_MODEL
-        value: gemini-2.5-flash
-      - key: GROQ_MODEL
-        value: llama-3.3-70b-versatile
-      # Add your API keys in the Render dashboard (Environment tab) — never commit them
-      # Required: at least one of GEMINI_API_KEY_1 or GROQ_API_KEY
+      - key: BRIDGE_URL
+        # Point this at your deployed claude-web-bridge instance
+        value: http://127.0.0.1:3000
+      - key: BRIDGE_PROVIDER
+        value: claude
+      # Set BRIDGE_API_KEY in the Render dashboard (Environment tab) if the bridge requires auth
 
 # ── Persistent disk (paid tier only, ~$1/month) ───────────────────────────────
 # Uncomment to persist SQLite across restarts and redeploys.
