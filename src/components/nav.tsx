@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const links = [
-  { href: '/', label: 'Generate', icon: Zap },
+  { href: '/generate', label: 'Generate', icon: Zap },
   { href: '/planner', label: 'Planner', icon: Calendar },
   { href: '/backlog', label: 'Backlog', icon: Layers },
   { href: '/archive', label: 'Archive', icon: Archive },
