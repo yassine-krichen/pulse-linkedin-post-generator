@@ -1,11 +1,11 @@
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { PrismaClient } from '@/generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Prisma, PrismaClient } from '@/generated/prisma/client';
 import { Post, PostContent, PostStats, PostStatus, Settings } from '@/types';
 
-const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? 'file:./dev.db' });
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 
 // Reuse a single PrismaClient across hot reloads in dev — avoids exhausting
-// SQLite connections when Next.js recompiles modules.
+// Postgres connections when Next.js recompiles modules.
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
@@ -18,9 +18,9 @@ type PostRow = {
   format: string;
   contentType: string;
   title: string;
-  content: string;
+  content: Prisma.JsonValue;
   imageStrategy: string;
-  hashtags: string;
+  hashtags: string[];
   status: string;
   source: string;
   topicCategory: string | null;
@@ -43,9 +43,9 @@ function toPost(row: PostRow): Post {
     format: row.format as Post['format'],
     contentType: row.contentType as Post['contentType'],
     title: row.title,
-    content: JSON.parse(row.content) as PostContent,
+    content: row.content as unknown as PostContent,
     imageStrategy: row.imageStrategy,
-    hashtags: JSON.parse(row.hashtags) as string[],
+    hashtags: row.hashtags,
     status: row.status as PostStatus,
     source: row.source as Post['source'],
     topicCategory: row.topicCategory ?? undefined,
@@ -69,9 +69,9 @@ function fromPost(post: Post) {
     format: post.format,
     contentType: post.contentType,
     title: post.title,
-    content: JSON.stringify(post.content),
+    content: post.content as unknown as Prisma.InputJsonValue,
     imageStrategy: post.imageStrategy,
-    hashtags: JSON.stringify(post.hashtags),
+    hashtags: post.hashtags,
     status: post.status,
     source: post.source,
     topicCategory: post.topicCategory ?? null,
@@ -87,9 +87,9 @@ function partialFromPost(updates: Partial<Post>) {
   if (updates.format !== undefined) data.format = updates.format;
   if (updates.contentType !== undefined) data.contentType = updates.contentType;
   if (updates.title !== undefined) data.title = updates.title;
-  if (updates.content !== undefined) data.content = JSON.stringify(updates.content);
+  if (updates.content !== undefined) data.content = updates.content;
   if (updates.imageStrategy !== undefined) data.imageStrategy = updates.imageStrategy;
-  if (updates.hashtags !== undefined) data.hashtags = JSON.stringify(updates.hashtags);
+  if (updates.hashtags !== undefined) data.hashtags = updates.hashtags;
   if (updates.status !== undefined) data.status = updates.status;
   if (updates.source !== undefined) data.source = updates.source;
   if (updates.topicCategory !== undefined) data.topicCategory = updates.topicCategory;

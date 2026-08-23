@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Post {
@@ -13,9 +13,9 @@ model Post {
   format        String    // 'standard' | 'carousel' | 'image'
   contentType   String    @default("learned") // 'built' | 'learned' | 'opinion' | 'tutorial'
   title         String
-  content       String    // JSON string of generated post content
+  content       Json      // generated post content (shape varies by format)
   imageStrategy String
-  hashtags      String    // JSON string array
+  hashtags      String[]  // native Postgres text array
   status        String    @default("draft") // 'draft' | 'ready' | 'posted'
   source        String    @default("user") // 'user' | 'trending'
   topicCategory String?

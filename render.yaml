@@ -6,8 +6,8 @@ services:
     startCommand: npx prisma migrate deploy && npm start
     envVars:
       - key: DATABASE_URL
-        # Free tier: ephemeral (resets on redeploy). Upgrade to paid + add disk below.
-        value: file:./dev.db
+        # Neon Postgres connection string — set in the Render dashboard (Environment tab)
+        sync: false
       - key: NODE_ENV
         value: production
       - key: BRIDGE_URL
@@ -16,12 +16,3 @@ services:
       - key: BRIDGE_PROVIDER
         value: claude
       # Set BRIDGE_API_KEY in the Render dashboard (Environment tab) if the bridge requires auth
-
-# ── Persistent disk (paid tier only, ~$1/month) ───────────────────────────────
-# Uncomment to persist SQLite across restarts and redeploys.
-# Also change DATABASE_URL above to: file:/var/data/prod.db
-#
-#    disk:
-#      name: pulse-db
-#      mountPath: /var/data
-#      sizeGB: 1
