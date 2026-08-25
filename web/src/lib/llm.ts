@@ -6,7 +6,7 @@ const LLM_BRIDGE_URL = process.env.LLM_BRIDGE_URL ?? 'http://127.0.0.1:3000';
 const LLM_BRIDGE_API_KEY = process.env.LLM_BRIDGE_API_KEY;
 const LLM_BRIDGE_PROVIDER = (process.env.LLM_BRIDGE_PROVIDER ?? 'claude') as 'claude' | 'chatgpt';
 
-const FREELLM_BASE_URL = process.env.FREELLM_BASE_URL ?? 'https://freellmapi-19vj.onrender.com/v1';
+const FREELLM_BASE_URL = process.env.FREELLM_BASE_URL;
 const FREELLM_API_KEY = process.env.FREELLM_API_KEY;
 
 export interface LLMOptions {
@@ -25,14 +25,20 @@ export async function generate(
 
   try {
     return await generateWithBridge(systemPrompt, userPrompt);
-  } catch (err) {
+  } catch (bridgeErr) {
     // Bridge failures are diverse (session logged out, no browser slot, DOM
     // drift, actual rate limit) — any of them should fall through to
     // freellmapi if it's configured, rather than only retrying on rate limits.
-    if (FREELLM_BASE_URL && FREELLM_API_KEY) {
-      return generateWithFreellmapi(systemPrompt, userPrompt, opts);
+    if (!FREELLM_BASE_URL || !FREELLM_API_KEY) throw bridgeErr;
+
+    try {
+      return await generateWithFreellmapi(systemPrompt, userPrompt, opts);
+    } catch (fallbackErr) {
+      throw new Error(
+        `bridge failed (${(bridgeErr as Error).message}) and freellmapi fallback also failed`,
+        { cause: fallbackErr },
+      );
     }
-    throw err;
   }
 }
 
@@ -52,7 +58,10 @@ async function generateWithBridge(systemPrompt: string, userPrompt: string): Pro
     throw new Error(err.error ?? `Bridge responded ${res.status}`);
   }
 
-  const data = (await res.json()) as { response: string };
+  const data = (await res.json().catch(() => null)) as { response?: unknown } | null;
+  if (typeof data?.response !== 'string') {
+    throw new Error('Bridge response missing expected "response" string field');
+  }
   return data.response;
 }
 
@@ -61,6 +70,7 @@ async function generateWithFreellmapi(
   userPrompt: string,
   opts: LLMOptions,
 ): Promise<string> {
+  if (!FREELLM_BASE_URL) throw new Error('FREELLM_BASE_URL is not set');
   if (!FREELLM_API_KEY) throw new Error('FREELLM_API_KEY is not set');
 
   const res = await fetch(`${FREELLM_BASE_URL}/chat/completions`, {
@@ -87,22 +97,12 @@ async function generateWithFreellmapi(
     throw new Error(err.error ?? `freellmapi responded ${res.status}`);
   }
 
-  const data = (await res.json()) as { choices: { message: { content: string } }[] };
-  return data.choices[0].message.content;
-}
-
-export function isRateLimitError(err: unknown): boolean {
-  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
-  return (
-    msg.includes('429') ||
-    msg.includes('rate limit') ||
-    msg.includes('quota') ||
-    msg.includes('resource_exhausted') ||
-    msg.includes('too many requests') ||
-    msg.includes('503') ||
-    msg.includes('overloaded') ||
-    msg.includes('high demand') ||
-    msg.includes('unavailable') ||
-    msg.includes('retryafter')
-  );
+  const data = (await res.json().catch(() => null)) as {
+    choices?: { message?: { content?: unknown } }[];
+  } | null;
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content !== 'string') {
+    throw new Error('freellmapi response missing expected choices[0].message.content string');
+  }
+  return content;
 }

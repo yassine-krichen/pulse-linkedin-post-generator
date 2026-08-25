@@ -8,6 +8,12 @@ export default function setup() {
     );
   }
 
+  // This project has a single Neon database — there's no separate test
+  // branch to isolate against, so surface exactly which host is about to
+  // be migrated and written to rather than doing it silently.
+  const host = new URL(process.env.DATABASE_URL).host;
+  console.warn(`[test setup] running migrations and tests against DATABASE_URL host: ${host}`);
+
   execSync('npx prisma migrate deploy', {
     cwd: process.cwd(),
     env: process.env,

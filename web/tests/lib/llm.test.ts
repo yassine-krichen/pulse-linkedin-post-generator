@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractJSON, isRateLimitError } from '@/lib/llm';
+import { extractJSON } from '@/lib/llm';
 
 interface Sample {
   worthy: boolean;
@@ -30,26 +30,5 @@ describe('extractJSON', () => {
   it('throws with a snippet of the offending text when nothing parses', () => {
     const text = 'I cannot help with that request.';
     expect(() => extractJSON<Sample>(text)).toThrow(/not valid JSON/);
-  });
-});
-
-describe('isRateLimitError', () => {
-  it('recognizes hard rate-limit errors', () => {
-    expect(isRateLimitError(new Error('429 Too Many Requests'))).toBe(true);
-    expect(isRateLimitError(new Error('Quota exceeded for this project'))).toBe(true);
-    expect(isRateLimitError(new Error('RESOURCE_EXHAUSTED'))).toBe(true);
-  });
-
-  it('recognizes transient overload errors (free-tier Gemini under load)', () => {
-    expect(isRateLimitError(new Error('This model is currently experiencing high demand.'))).toBe(
-      true,
-    );
-    expect(isRateLimitError(new Error('503 Service Unavailable: the model is overloaded'))).toBe(
-      true,
-    );
-  });
-
-  it('does not treat an unrelated error as rate-limited', () => {
-    expect(isRateLimitError(new Error('Invalid API key'))).toBe(false);
   });
 });
