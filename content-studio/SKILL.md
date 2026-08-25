@@ -137,7 +137,7 @@ When generating image prompts, reference this language:
 ## File Structure
 
 ```
-linkedin-content-system/
+content-studio/
 ├── SKILL.md                  # This file
 ├── README.md                 # System overview & quick start
 ├── PROFILE.md                # Personal context (user fills in)

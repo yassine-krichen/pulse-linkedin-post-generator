@@ -2,6 +2,8 @@
 
 A version-controlled, prompt-driven system for generating high-quality LinkedIn content. Go from idea to polished post in minutes.
 
+This is the manual, no-infrastructure counterpart to the `web/` app in this repo — a fully agent-assisted workflow for when you want full manual control over publishing, or the web app isn't available. See the [root README](../README.md) for how the two systems relate.
+
 ---
 
 ## What This System Does
@@ -73,7 +75,7 @@ Open `BACKLOG.md` and brain-dump:
 ## File Structure
 
 ```
-linkedin-content-system/
+content-studio/
 ├── SKILL.md                  # Agent instruction file (read by AI)
 ├── README.md                 # This file
 ├── PROFILE.md                # Your personal brand context
