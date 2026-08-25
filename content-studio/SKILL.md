@@ -1,4 +1,4 @@
-# LinkedIn Content System — Agent Skill File
+# content-studio — Agent Skill File
 
 This is the operational guide for the LinkedIn content generation system. Use this whenever the user asks to generate content for LinkedIn.
 
@@ -137,7 +137,7 @@ When generating image prompts, reference this language:
 ## File Structure
 
 ```
-linkedin-content-system/
+content-studio/
 ├── SKILL.md                  # This file
 ├── README.md                 # System overview & quick start
 ├── PROFILE.md                # Personal context (user fills in)

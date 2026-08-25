@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Post {
+  id            String    @id @default(cuid())
+  rawInput      String
+  format        String    // 'standard' | 'carousel' | 'image'
+  contentType   String    @default("learned") // 'built' | 'learned' | 'opinion' | 'tutorial'
+  title         String
+  content       Json      // generated post content (shape varies by format)
+  imageStrategy String
+  hashtags      String[]  // native Postgres text array
+  status        String    @default("draft") // 'draft' | 'ready' | 'posted'
+  source        String    @default("user") // 'user' | 'trending'
+  topicCategory String?
+  scheduledDate DateTime?
+  postedDate    DateTime?
+  notes         String?
+  impressions   Int?
+  likes         Int?
+  comments      Int?
+  shares        Int?
+  wasEdited     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model WeeklyTarget {
+  id           String   @id @default(cuid())
+  postsPerWeek Int      @default(1)
+  updatedAt    DateTime @updatedAt
+}
