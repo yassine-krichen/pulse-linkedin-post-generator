@@ -6,7 +6,7 @@ function buildPost(overrides: Partial<Post> = {}): Post {
   const now = new Date().toISOString();
   return {
     id: `test-${crypto.randomUUID()}`,
-    rawInput: 'I migrated the JSON file store to Prisma + SQLite.',
+    rawInput: 'I migrated the JSON file store to Prisma + Postgres.',
     format: 'standard',
     contentType: 'built',
     title: 'DB migration test post',

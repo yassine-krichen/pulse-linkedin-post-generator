@@ -3,8 +3,8 @@ import { findTrendingTopics, buildWebResearchPrompt, parseResearchPaste } from '
 import { loadProfileContext } from '@/lib/profile';
 import { generatePost } from '@/lib/prompts/generate';
 import { db } from '@/lib/db';
-import { Post, TrendingTopic } from '@/types';
-import { createId } from '@/lib/id';
+import { TrendingTopic } from '@/types';
+import { createPostFromGeneration } from '@/lib/posts';
 import { trendingRequestSchema, formatZodError } from '@/lib/validation';
 import { checkRateLimit, rateLimitResponseInit } from '@/lib/rate-limit';
 
@@ -65,23 +65,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const input = `Write a LinkedIn post with my perspective on this topic: ${topic.title}. Context: ${topic.summary}`;
     const generated = await generatePost(input, 'standard', 'opinion', ctx);
 
-    const now = new Date().toISOString();
-    const post: Post = {
-      id: createId(),
+    const post = createPostFromGeneration({
       rawInput: input,
       format: 'standard',
       contentType: 'opinion',
-      title: generated.title,
-      content: generated.content,
-      imageStrategy: generated.imageStrategy,
-      hashtags: generated.hashtags,
+      generated,
       status: 'ready',
       source: 'trending',
-      topicCategory: generated.topicCategory,
       scheduledDate: body.scheduledDate ?? undefined,
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
 
     await db.posts.create(post);
     return NextResponse.json(post);

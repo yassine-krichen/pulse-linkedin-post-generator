@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Layers, Filter } from 'lucide-react';
 
-type Filter = 'all' | 'draft' | 'ready';
+type PostFilter = 'all' | 'draft' | 'ready';
 
 export default function BacklogPage() {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useState<PostFilter>('all');
   const [loading, setLoading] = useState(true);
 
   async function load() {
@@ -31,29 +31,45 @@ export default function BacklogPage() {
   }, []);
 
   async function handleMarkReady(p: Post) {
-    await fetch(`/api/posts/${p.id}`, {
+    const res = await fetch(`/api/posts/${p.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'ready' }),
     });
+    if (!res.ok) {
+      toast.error('Failed to mark as ready');
+      return;
+    }
     toast.success('Marked as ready');
     load();
   }
 
   async function handleMarkPosted(p: Post) {
-    await fetch(`/api/posts/${p.id}`, {
+    const res = await fetch(`/api/posts/${p.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'posted', postedDate: new Date().toISOString() }),
     });
+    if (!res.ok) {
+      toast.error('Failed to mark as posted');
+      return;
+    }
     toast.success('Marked as posted');
     load();
   }
 
   async function handleDelete(p: Post) {
-    await fetch(`/api/posts/${p.id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/posts/${p.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      toast.error('Failed to delete post');
+      return;
+    }
     toast.success('Deleted');
     load();
+  }
+
+  function handleUpdate(updated: Post) {
+    setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
   }
 
   const filtered = posts.filter((p) => filter === 'all' || p.status === filter);
@@ -72,7 +88,7 @@ export default function BacklogPage() {
         </div>
         <div className="flex items-center gap-1.5">
           <Filter className="w-3.5 h-3.5 text-muted-foreground/60 mr-1" />
-          {(['all', 'draft', 'ready'] as Filter[]).map((f) => (
+          {(['all', 'draft', 'ready'] as PostFilter[]).map((f) => (
             <Button
               key={f}
               variant={filter === f ? 'secondary' : 'ghost'}
@@ -104,7 +120,7 @@ export default function BacklogPage() {
             onSaveToBacklog={post.status === 'draft' ? handleMarkReady : undefined}
             onMarkAsPosted={handleMarkPosted}
             onDelete={handleDelete}
-            onUpdate={load}
+            onUpdate={handleUpdate}
           />
         ))}
       </div>

@@ -1,4 +1,4 @@
-# LinkedIn Content System — Quick Start Guide
+# content-studio — Quick Start Guide
 
 A version-controlled, prompt-driven system for generating high-quality LinkedIn content. Go from idea to polished post in minutes.
 

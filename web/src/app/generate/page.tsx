@@ -76,21 +76,29 @@ export default function GeneratePage() {
   }
 
   async function handleSaveToBacklog(p: Post) {
-    await fetch(`/api/posts/${p.id}`, {
+    const res = await fetch(`/api/posts/${p.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'ready' }),
     });
+    if (!res.ok) {
+      toast.error('Failed to save to backlog');
+      return;
+    }
     toast.success('Saved to backlog');
     setPost((prev) => (prev ? { ...prev, status: 'ready' } : prev));
   }
 
   async function handleMarkAsPosted(p: Post) {
-    await fetch(`/api/posts/${p.id}`, {
+    const res = await fetch(`/api/posts/${p.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'posted', postedDate: new Date().toISOString() }),
     });
+    if (!res.ok) {
+      toast.error('Failed to mark as posted');
+      return;
+    }
     toast.success('Marked as posted');
     setPost((prev) => (prev ? { ...prev, status: 'posted' } : prev));
   }

@@ -4,12 +4,11 @@ import { classify } from '@/lib/prompts/classify';
 import { generatePost } from '@/lib/prompts/generate';
 import { loadProfileContext } from '@/lib/profile';
 import { db } from '@/lib/db';
-import { Post } from '@/types';
-import { createId } from '@/lib/id';
+import { createPostFromGeneration } from '@/lib/posts';
 import { pipelineRequestSchema, formatZodError } from '@/lib/validation';
 import { checkRateLimit, rateLimitResponseInit } from '@/lib/rate-limit';
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   const limit = checkRateLimit('pipeline', 10, 60_000);
   if (!limit.allowed) {
     return NextResponse.json(
@@ -42,22 +41,14 @@ export async function POST(req: NextRequest) {
     // Step 3: Generate
     const generated = await generatePost(input, classification.format, contentType, ctx);
 
-    const now = new Date().toISOString();
-    const post: Post = {
-      id: createId(),
+    const post = createPostFromGeneration({
       rawInput: input,
       format: classification.format,
       contentType,
-      title: generated.title,
-      content: generated.content,
-      imageStrategy: generated.imageStrategy,
-      hashtags: generated.hashtags,
+      generated,
       status: 'draft',
       source: 'user',
-      topicCategory: generated.topicCategory,
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
 
     await db.posts.create(post);
 

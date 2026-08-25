@@ -1,4 +1,4 @@
-# LinkedIn Content System — Agent Skill File
+# content-studio — Agent Skill File
 
 This is the operational guide for the LinkedIn content generation system. Use this whenever the user asks to generate content for LinkedIn.
 

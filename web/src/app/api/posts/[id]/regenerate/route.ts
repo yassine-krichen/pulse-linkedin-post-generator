@@ -19,7 +19,12 @@ export async function POST(
 
   const { id } = await params;
 
-  const body = await req.json().catch(() => ({}));
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
   const result = regenerateRequestSchema.safeParse(body);
   if (!result.success) {
     return NextResponse.json({ error: formatZodError(result.error) }, { status: 400 });

@@ -28,9 +28,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'limit and offset must be non-negative integers' }, { status: 400 });
   }
 
-  const result = statusParam
-    ? await db.posts.findByStatus(statusParam, { limit, offset })
-    : await db.posts.findAll({ limit, offset });
+  try {
+    const result = statusParam
+      ? await db.posts.findByStatus(statusParam, { limit, offset })
+      : await db.posts.findAll({ limit, offset });
 
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch posts';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

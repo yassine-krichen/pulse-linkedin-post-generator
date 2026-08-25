@@ -141,7 +141,7 @@ function AnimatedDemo() {
 const FAQ_ITEMS = [
   {
     q: 'Which AI model does it use?',
-    a: 'claude-web-bridge — a local server that drives the real Claude.ai UI via browser automation. No API keys, no monthly bill, just the account you already have.',
+    a: 'llm-web-bridge — a local server that drives the real Claude.ai or ChatGPT UI via browser automation (your choice, via the LLM_BRIDGE_PROVIDER setting). No API keys, no monthly bill, just the account you already have.',
   },
   {
     q: 'Does it post automatically?',
@@ -256,7 +256,7 @@ export default function LandingPage() {
         <div className="space-y-4">
           <Badge variant="outline" className="text-xs gap-1.5 px-3 py-1">
             <Zap className="w-3 h-3" />
-            Personal edition · claude-web-bridge
+            Personal edition · llm-web-bridge
           </Badge>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
             From note to LinkedIn post.

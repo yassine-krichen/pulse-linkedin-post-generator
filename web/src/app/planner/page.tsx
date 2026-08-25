@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { PostCard } from '@/components/post-card';
+import { TopicList } from '@/components/topic-list';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { getWeekBounds, isSameDay } from '@/lib/date';
 import {
   Calendar,
   ChevronLeft,
@@ -41,25 +43,6 @@ const COMMENT_TIPS = [
   'If someone leaves a standout comment, quote it in a future post (with credit)',
   "Each reply extends your post's visible window — treat them as mini-posts",
 ];
-
-function getWeekBounds(offset: number): { start: Date; end: Date } {
-  const now = new Date();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + offset * 7);
-  monday.setHours(0, 0, 0, 0);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  sunday.setHours(23, 59, 59, 999);
-  return { start: monday, end: sunday };
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
 
 type ResearchMode = 'llm' | 'manual';
 
@@ -574,46 +557,6 @@ export default function PlannerPage() {
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-interface TopicListProps {
-  topics: TrendingTopic[];
-  generatingFor: string | null;
-  onGenerate: (topic: TrendingTopic) => void;
-}
-
-function TopicList({ topics, generatingFor, onGenerate }: TopicListProps) {
-  if (topics.length === 0) return null;
-
-  return (
-    <div className="space-y-2">
-      {topics.map((topic, i) => (
-        <Card key={i} className="border-border/40">
-          <CardContent className="pt-3 pb-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1 flex-1 min-w-0">
-                <p className="text-sm font-medium leading-snug">{topic.title}</p>
-                <p className="text-xs text-muted-foreground">{topic.summary}</p>
-                {topic.relevance && (
-                  <p className="text-xs text-muted-foreground/50">{topic.relevance}</p>
-                )}
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs shrink-0 gap-1.5"
-                disabled={generatingFor !== null}
-                onClick={() => onGenerate(topic)}
-              >
-                <Sparkles className="w-3 h-3" />
-                {generatingFor ? 'Working...' : 'Generate'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
     </div>
   );
 }
