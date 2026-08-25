@@ -70,9 +70,8 @@ async function generateWithFreellmapi(
       Authorization: `Bearer ${FREELLM_API_KEY}`,
     },
     body: JSON.stringify({
-      // NOTE: "auto" lets the proxy pick/prioritize a provider itself.
-      // Double-check this is the literal value freellmapi expects once
-      // real API docs are available — a placeholder pending confirmation.
+      // "auto" lets freellmapi route to whichever configured provider/model
+      // fits best, per its own priority chain — no model name to maintain here.
       model: 'auto',
       messages: [
         { role: 'system', content: systemPrompt },
