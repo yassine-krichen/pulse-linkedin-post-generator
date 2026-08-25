@@ -10,9 +10,10 @@ services:
         sync: false
       - key: NODE_ENV
         value: production
-      - key: BRIDGE_URL
-        # Point this at your deployed claude-web-bridge instance
-        value: http://127.0.0.1:3000
-      - key: BRIDGE_PROVIDER
-        value: claude
-      # Set BRIDGE_API_KEY in the Render dashboard (Environment tab) if the bridge requires auth
+      - key: LLM_PROVIDER
+        value: freellmapi
+      - key: FREELLM_BASE_URL
+        value: https://freellmapi-19vj.onrender.com/v1
+      - key: FREELLM_API_KEY
+        # Set in the Render dashboard (Environment tab)
+        sync: false

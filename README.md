@@ -35,11 +35,11 @@ The human always posts. Pulse handles the writing.
 ## Stack
 
 - **Next.js** (App Router) + TypeScript
-- **Prisma 7** + SQLite — zero-config local persistence
+- **Prisma 7** + Postgres (Neon) — external, persistent database
 - **Tailwind CSS** + shadcn/ui — monochrome dark theme
-- **Gemini** → **Groq** → **Ollama** with automatic key rotation and fallback
+- **LLM bridge (local dev)** → **freellmapi (production)** — see [LLM providers](#llm-providers)
 - **Zod** — all API inputs validated
-- **Vitest** — 34 tests covering core logic, DB layer, and API routes
+- **Vitest** — tests covering core logic, DB layer, and API routes
 
 ---
 
@@ -51,7 +51,7 @@ npm install
 
 # 2. Set up environment variables
 cp .env.example .env.local
-# Fill in at least one Gemini or Groq API key
+# Fill in DATABASE_URL and your chosen LLM provider config
 
 # 3. Run database migrations
 npx prisma migrate deploy
@@ -64,7 +64,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Profile context
 
-Edit `../linkedin-content-system/PROFILE.md` and `../LinkedIn_profile.md` to inject your voice and background into every LLM call. The more specific, the better the output.
+Edit `../content-studio/PROFILE.md` and `../docs/linkedin-profile.md` to inject your voice and background into every LLM call. The more specific, the better the output.
 
 ### Migrating existing data
 
@@ -78,9 +78,12 @@ npm run db:migrate-json
 
 ## LLM providers
 
-The app tries providers in order: Gemini keys → Groq keys → Ollama (local fallback).
+Set `LLM_PROVIDER` in `.env.local` to choose the active provider:
 
-Add multiple Gemini and Groq API keys to rotate through rate limits automatically. All keys are configured in `.env.local` — see `.env.example` for the full list.
+- **`bridge`** (local dev) — drives claude.ai/chatgpt.com via your logged-in browser session through the `llm-web-bridge` sibling project (free, no API costs). Start that project separately, then set `LLM_BRIDGE_URL`, `LLM_BRIDGE_API_KEY`, `LLM_BRIDGE_PROVIDER`. If a bridge call fails for any reason, it automatically falls back to `freellmapi` when `FREELLM_BASE_URL`/`FREELLM_API_KEY` are configured.
+- **`freellmapi`** (deployed/production) — a hosted OpenAI-compatible multi-provider proxy. Set `FREELLM_BASE_URL` and `FREELLM_API_KEY`. This is the only provider used on Render, since bridge requires a real Chrome window and doesn't work headless.
+
+See `.env.example` for the full list of variables.
 
 ---
 
@@ -91,10 +94,10 @@ A `render.yaml` is included. To deploy:
 1. Create a Render account at [render.com](https://render.com)
 2. Connect your repository
 3. Render detects `render.yaml` automatically
-4. Add your API keys in the Render dashboard → Environment tab
+4. Set `DATABASE_URL` (Neon Postgres) and `FREELLM_API_KEY` in the Render dashboard → Environment tab
 5. Deploy
 
-**Free tier note:** The Render free tier uses ephemeral storage — the SQLite database resets on each redeploy. For a persistent deployment, uncomment the disk block in `render.yaml` (requires Render Starter plan, ~$7/month).
+The database is external Neon Postgres, not stored on Render's disk — no ephemeral storage caveats.
 
 ---
 

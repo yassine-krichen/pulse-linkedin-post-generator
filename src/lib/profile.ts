@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
-const CONTENT_SYSTEM_DIR = path.join(process.cwd(), '..', 'linkedin-content-system');
-const LINKEDIN_PROFILE_PATH = path.join(process.cwd(), '..', 'LinkedIn_profile.md');
+const CONTENT_SYSTEM_DIR = path.join(process.cwd(), '..', 'content-studio');
+const LINKEDIN_PROFILE_PATH = path.join(process.cwd(), '..', 'docs', 'linkedin-profile.md');
 
 function readFile(filePath: string): string {
   if (!fs.existsSync(filePath)) return '';
