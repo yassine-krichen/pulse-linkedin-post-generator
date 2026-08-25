@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: pulse-linkedin
+    runtime: node
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm start
+    envVars:
+      - key: DATABASE_URL
+        # Neon Postgres connection string — set in the Render dashboard (Environment tab)
+        sync: false
+      - key: NODE_ENV
+        value: production
+      - key: LLM_PROVIDER
+        value: freellmapi
+      - key: FREELLM_BASE_URL
+        value: https://freellmapi-19vj.onrender.com/v1
+      - key: FREELLM_API_KEY
+        # Set in the Render dashboard (Environment tab)
+        sync: false
