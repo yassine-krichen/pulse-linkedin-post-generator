@@ -2,7 +2,10 @@ services:
   - type: web
     name: pulse-linkedin
     runtime: node
-    buildCommand: npm install && npx prisma generate && npm run build
+    # --include=dev: Render sets NODE_ENV=production for the whole service,
+    # which makes plain `npm install` skip devDependencies — but the Next.js
+    # build itself needs @tailwindcss/postcss (a devDependency) to run.
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
     startCommand: npx prisma migrate deploy && npm start
     envVars:
       - key: DATABASE_URL
