@@ -17,3 +17,6 @@ services:
       - key: FREELLM_API_KEY
         # Set in the Render dashboard (Environment tab)
         sync: false
+      - key: APP_PASSWORD
+        # Shared password gating the whole app — set in the Render dashboard (Environment tab)
+        sync: false

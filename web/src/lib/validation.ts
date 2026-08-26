@@ -86,6 +86,10 @@ export const regenerateRequestSchema = z.object({
   tone: z.enum(['default', 'casual', 'punchier', 'technical']).optional(),
 });
 
+export const loginRequestSchema = z.object({
+  password: z.string().min(1),
+});
+
 export function formatZodError(error: z.ZodError): string {
   return error.issues.map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`).join('; ');
 }

@@ -32,3 +32,19 @@ export function rateLimitResponseInit(retryAfterSeconds: number): ResponseInit {
     headers: { 'Retry-After': String(retryAfterSeconds) },
   };
 }
+
+/**
+ * Best-effort client IP from standard proxy headers (Render, and most
+ * reverse proxies, set x-forwarded-for). Falls back to a constant so
+ * unidentifiable clients still share one bucket rather than crashing —
+ * only matters for routes reachable without a session, like /api/login.
+ */
+export function getClientIp(request: Request): string {
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) return forwardedFor.split(',')[0].trim();
+
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp.trim();
+
+  return 'unknown';
+}
