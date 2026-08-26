@@ -136,6 +136,121 @@ function AnimatedDemo() {
   );
 }
 
+// ── Live demo ─────────────────────────────────────────────────────────────────
+
+const LIVE_DEMO_PLACEHOLDER = 'Spent the afternoon fixing a flaky CI pipeline — turned out to be a race condition in the test setup...';
+
+function LiveDemo() {
+  const [note, setNote] = useState('');
+  const [output, setOutput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleGenerate() {
+    if (note.trim().length < 10) {
+      setError('A bit more detail helps — at least a sentence or two.');
+      return;
+    }
+    setError(null);
+    setOutput('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/demo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: note }),
+      });
+
+      if (!res.ok || !res.body) {
+        const data: unknown = await res.json().catch(() => ({}));
+        const message =
+          typeof data === 'object' && data && 'error' in data && typeof data.error === 'string'
+            ? data.error
+            : 'Something went wrong — try again.';
+        setError(message);
+        setLoading(false);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = '';
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+
+        // A NUL byte marks a generation failure that happened mid-stream
+        // (timeout, upstream error) — see DEMO_ERROR_PREFIX in
+        // src/lib/demo-stream.ts. Split it out so a failure never renders
+        // as if it were part of the post.
+        const errorIndex = acc.indexOf('\u0000');
+        if (errorIndex !== -1) {
+          setOutput(acc.slice(0, errorIndex));
+          setError(acc.slice(errorIndex + 1).trim() || 'Something went wrong mid-generation — try again.');
+          setLoading(false);
+          return;
+        }
+
+        setOutput(acc);
+      }
+    } catch {
+      setError('Network error — try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="w-full max-w-3xl mx-auto space-y-4">
+      <div className="rounded-xl border border-border/40 bg-muted/10 p-5 space-y-3">
+        <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50">
+          Try it with your own note
+        </span>
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder={LIVE_DEMO_PLACEHOLDER}
+          rows={4}
+          maxLength={800}
+          disabled={loading}
+          className="w-full bg-transparent text-sm leading-relaxed resize-none focus:outline-none placeholder:text-muted-foreground/40 disabled:opacity-60"
+        />
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[10px] text-muted-foreground/40 font-mono">
+            {note.length}/800 · 3 tries per 10 min
+          </span>
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            className={buttonVariants({ size: 'sm', className: 'gap-1.5 shrink-0' })}
+          >
+            <Zap className="w-3 h-3" />
+            {loading ? 'Writing…' : 'Generate live'}
+          </button>
+        </div>
+      </div>
+
+      {error && <p className="text-sm text-destructive text-center">{error}</p>}
+
+      {(output || loading) && (
+        <div className="rounded-xl border border-border/40 bg-muted/10 p-5 space-y-3">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50">
+            LinkedIn post
+          </span>
+          <p className="text-sm text-foreground leading-relaxed whitespace-pre-line min-h-[80px]">
+            {output}
+            {loading && (
+              <span className="inline-block w-0.5 h-3.5 bg-foreground/60 ml-0.5 animate-pulse" />
+            )}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── FAQ ───────────────────────────────────────────────────────────────────────
 
 const FAQ_ITEMS = [
@@ -284,6 +399,17 @@ export default function LandingPage() {
         </div>
 
         <AnimatedDemo />
+      </section>
+
+      {/* Live demo */}
+      <section className="max-w-3xl mx-auto px-6 space-y-6">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-semibold tracking-tight">That was a preview. This is real.</h2>
+          <p className="text-sm text-muted-foreground">
+            Your own note, generated live, right here — no login required.
+          </p>
+        </div>
+        <LiveDemo />
       </section>
 
       {/* How it works */}

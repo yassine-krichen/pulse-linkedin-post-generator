@@ -6,7 +6,7 @@ import { humanizeStandardPost } from '@/lib/prompts/humanize';
 import { lintPost } from '@/lib/quality-check';
 import { regenerateRequestSchema, formatZodError } from '@/lib/validation';
 import { checkRateLimit, rateLimitResponseInit } from '@/lib/rate-limit';
-import { StandardPostContent } from '@/types';
+import { StandardPostContent, QualityCheckResult } from '@/types';
 
 export async function POST(
   req: NextRequest,
@@ -50,6 +50,7 @@ export async function POST(
 
     // Quality/humanizer pass — standard posts only. Skips the extra LLM call
     // entirely when the regenerated draft is already clean.
+    let qualityCheck: QualityCheckResult | null = null;
     if (existing.format === 'standard') {
       const issues = lintPost(generated.content.fullText);
       if (issues.length > 0) {
@@ -60,6 +61,7 @@ export async function POST(
         );
         generated = { ...generated, content: revisedContent };
       }
+      qualityCheck = { issuesFound: issues, wasRevised: issues.length > 0 };
     }
 
     const updated = await db.posts.update(id, {
@@ -69,8 +71,9 @@ export async function POST(
       hashtags: generated.hashtags,
       topicCategory: generated.topicCategory,
     });
+    if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ ...updated, qualityCheck });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Regeneration failed.';
     return NextResponse.json({ error: message }, { status: 500 });

@@ -10,7 +10,7 @@ import { db } from '@/lib/db';
 import { createPostFromGeneration } from '@/lib/posts';
 import { pipelineRequestSchema, formatZodError } from '@/lib/validation';
 import { checkRateLimit, rateLimitResponseInit } from '@/lib/rate-limit';
-import { StandardPostContent } from '@/types';
+import { StandardPostContent, QualityCheckResult } from '@/types';
 
 const RECENT_TOPICS_LIMIT = 15;
 
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }));
     const evaluation = await evaluate(input, ctx, recentTopics);
     if (!evaluation.worthy) {
-      return NextResponse.json({ evaluation, classification: null, post: null });
+      return NextResponse.json({ evaluation, classification: null, post: null, qualityCheck: null });
     }
 
     const contentType = evaluation.classifiedAs ?? 'learned';
@@ -69,6 +69,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Step 4: Quality/humanizer pass — standard posts only. Skips the extra
     // LLM call entirely when the draft is already clean.
+    let qualityCheck: QualityCheckResult | null = null;
     if (classification.format === 'standard') {
       const issues = lintPost(generated.content.fullText);
       if (issues.length > 0) {
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         );
         generated = { ...generated, content: revisedContent };
       }
+      qualityCheck = { issuesFound: issues, wasRevised: issues.length > 0 };
     }
 
     const post = createPostFromGeneration({
@@ -92,7 +94,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     await db.posts.create(post);
 
-    return NextResponse.json({ evaluation, classification, post });
+    return NextResponse.json({ evaluation, classification, post, qualityCheck });
   } catch (err) {
     console.error('[pipeline]', err);
     const message = err instanceof Error ? err.message : 'Generation failed.';

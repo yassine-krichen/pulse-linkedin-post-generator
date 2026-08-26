@@ -1,6 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Prisma, PrismaClient } from '@/generated/prisma/client';
-import { Post, PostContent, PostFormat, PostStats, PostStatus, Settings } from '@/types';
+import { Post, PostContent, PostFormat, PostStats, PostStatus, PublicStats, Settings } from '@/types';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 
@@ -222,6 +222,36 @@ export const db = {
             ? ((totalLikes + totalComments + totalShares) / totalImpressions) * 100
             : 0,
         bestPost: best ? { id: best.id, title: best.title, impressions: best.impressions! } : null,
+      };
+    },
+
+    // Public, unauthenticated social-proof numbers — aggregate counts only,
+    // never post titles/content. Extends the same aggregate query as stats()
+    // with the total-generated count, deliberately omitting bestPost.
+    async publicStats(): Promise<PublicStats> {
+      const [totalGenerated, agg] = await Promise.all([
+        prisma.post.count(),
+        prisma.post.aggregate({
+          where: { status: 'posted' },
+          _count: { id: true },
+          _sum: { impressions: true, likes: true, comments: true, shares: true },
+        }),
+      ]);
+      const totalImpressions = agg._sum.impressions ?? 0;
+      const totalLikes = agg._sum.likes ?? 0;
+      const totalComments = agg._sum.comments ?? 0;
+      const totalShares = agg._sum.shares ?? 0;
+      return {
+        totalPostsGenerated: totalGenerated,
+        totalPostsPosted: agg._count.id,
+        totalImpressions,
+        totalLikes,
+        totalComments,
+        totalShares,
+        avgEngagementRate:
+          totalImpressions > 0
+            ? ((totalLikes + totalComments + totalShares) / totalImpressions) * 100
+            : 0,
       };
     },
   },

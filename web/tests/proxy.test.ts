@@ -109,17 +109,18 @@ describe('proxy', () => {
     });
   });
 
-  // /login and /api/login are excluded from ever running the `proxy`
-  // function at all, via the exported route matcher below — Next.js's
-  // routing layer consults this config before invoking `proxy`, so calling
-  // `proxy()` directly with those paths would not reflect real behavior
-  // (there is no in-function special case for them). Full behavioral
-  // coverage of "these paths are never gated" would need a running
-  // dev/prod server and is out of scope for a unit test; this asserts the
-  // matcher pattern itself hasn't regressed to stop excluding them.
-  it('excludes /login and /api/login from the route matcher', () => {
+  // /login, /api/login, /stats, /api/public-stats, and /api/demo are
+  // excluded from ever running the `proxy` function at all, via the
+  // exported route matcher below — Next.js's routing layer consults this
+  // config before invoking `proxy`, so calling `proxy()` directly with
+  // those paths would not reflect real behavior (there is no in-function
+  // special case for them). Full behavioral coverage of "these paths are
+  // never gated" would need a running dev/prod server and is out of scope
+  // for a unit test; this asserts the matcher pattern itself hasn't
+  // regressed to stop excluding them.
+  it('excludes /login, /api/login, /stats, /api/public-stats, and /api/demo from the route matcher', () => {
     expect(config.matcher).toEqual([
-      '/((?!login$|api/login$|_next/static|_next/image|favicon.ico).*)',
+      '/((?!login$|api/login$|stats$|api/public-stats$|api/demo$|_next/static|_next/image|favicon.ico).*)',
     ]);
   });
 });

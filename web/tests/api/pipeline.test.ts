@@ -46,6 +46,30 @@ const STANDARD_POST_JSON = JSON.stringify({
   topicCategory: 'Systems',
 });
 
+// Short, and contains a banned phrase from quality-check.ts's BANNED_PHRASES
+// list ('no days off') — deliberately trips lintPost so the humanizer pass
+// actually runs.
+const DIRTY_STANDARD_POST_JSON = JSON.stringify({
+  title: 'Dirty pipeline test title',
+  hook: 'A short hook.',
+  body: 'I ground through this project with no days off, but it was worth it.',
+  takeaway: 'Grind pays off.',
+  cta: 'Thoughts?',
+  fullText:
+    'A short hook. I ground through this project with no days off, but it was worth it. Grind pays off. Thoughts? #Systems',
+  imageStrategy: 'No image needed — copy stands alone',
+  hashtags: ['#Systems'],
+  topicCategory: 'Systems',
+});
+
+const HUMANIZED_STANDARD_POST_JSON = JSON.stringify({
+  hook: 'A revised hook.',
+  body: 'A revised body with no clichés.',
+  takeaway: 'A revised takeaway.',
+  cta: 'What do you think?',
+  fullText: 'HUMANIZED_FULLTEXT_MARKER — a revised, clean post. #Systems',
+});
+
 describe('POST /api/pipeline', () => {
   const createdIds: string[] = [];
 
@@ -74,6 +98,55 @@ describe('POST /api/pipeline', () => {
 
     const stored = await db.posts.findById(body.post.id);
     expect(stored?.title).toBe('Pipeline test title');
+  });
+
+  it('skips the humanizer pass and reports a clean qualityCheck when the generated draft has no issues', async () => {
+    mockGenerate
+      .mockResolvedValueOnce(EVALUATION_JSON)
+      .mockResolvedValueOnce(CLASSIFICATION_JSON)
+      .mockResolvedValueOnce(STANDARD_POST_JSON);
+
+    const req = new NextRequest('http://localhost/api/pipeline', {
+      method: 'POST',
+      body: JSON.stringify({ input: 'I migrated a JSON store to Postgres and hit a race condition.' }),
+    });
+    const res = await pipeline(req);
+    const body: { post: Post; qualityCheck: { issuesFound: string[]; wasRevised: boolean } } = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.qualityCheck).toEqual({ issuesFound: [], wasRevised: false });
+    // Evaluate + classify + generate only — no 4th call for the humanizer.
+    expect(mockGenerate).toHaveBeenCalledTimes(3);
+    createdIds.push(body.post.id);
+  });
+
+  it('runs the humanizer pass and reports issuesFound/wasRevised when the generated draft trips a quality check rule', async () => {
+    mockGenerate
+      .mockResolvedValueOnce(EVALUATION_JSON)
+      .mockResolvedValueOnce(CLASSIFICATION_JSON)
+      .mockResolvedValueOnce(DIRTY_STANDARD_POST_JSON)
+      .mockResolvedValueOnce(HUMANIZED_STANDARD_POST_JSON);
+
+    const req = new NextRequest('http://localhost/api/pipeline', {
+      method: 'POST',
+      body: JSON.stringify({ input: 'I migrated a JSON store to Postgres and hit a race condition.' }),
+    });
+    const res = await pipeline(req);
+    const body: { post: Post; qualityCheck: { issuesFound: string[]; wasRevised: boolean } } = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.qualityCheck.wasRevised).toBe(true);
+    expect(body.qualityCheck.issuesFound.length).toBeGreaterThan(0);
+    expect(body.qualityCheck.issuesFound.some((issue) => issue.includes('no days off'))).toBe(true);
+    // The humanized content replaced the dirty draft's content.
+    expect((body.post.content as { fullText: string }).fullText).toContain('HUMANIZED_FULLTEXT_MARKER');
+    // Evaluate + classify + generate + humanize — the 4th call proves the
+    // humanizer actually ran, not just that qualityCheck reports issues.
+    expect(mockGenerate).toHaveBeenCalledTimes(4);
+    createdIds.push(body.post.id);
+
+    const stored = await db.posts.findById(body.post.id);
+    expect((stored?.content as { fullText: string }).fullText).toContain('HUMANIZED_FULLTEXT_MARKER');
   });
 
   it('returns a 400 with a clean error when the input is missing', async () => {

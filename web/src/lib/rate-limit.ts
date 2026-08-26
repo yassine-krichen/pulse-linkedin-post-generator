@@ -34,14 +34,21 @@ export function rateLimitResponseInit(retryAfterSeconds: number): ResponseInit {
 }
 
 /**
- * Best-effort client IP from standard proxy headers (Render, and most
- * reverse proxies, set x-forwarded-for). Falls back to a constant so
- * unidentifiable clients still share one bucket rather than crashing —
- * only matters for routes reachable without a session, like /api/login.
+ * Best-effort client IP, trusting only the hop closest to us. Render sits
+ * as a single reverse proxy in front of this app and appends the real
+ * connecting IP as the LAST entry of x-forwarded-for — everything before
+ * that (including the entire header, if a client sets it directly) is
+ * attacker-controlled. Taking the first entry (a past bug here) lets any
+ * caller mint a fresh rate-limit bucket on every request just by sending a
+ * different x-forwarded-for value, fully defeating per-IP limits on
+ * unauthenticated routes like /api/login and /api/demo.
  */
 export function getClientIp(request: Request): string {
   const forwardedFor = request.headers.get('x-forwarded-for');
-  if (forwardedFor) return forwardedFor.split(',')[0].trim();
+  if (forwardedFor) {
+    const hops = forwardedFor.split(',');
+    return hops[hops.length - 1].trim();
+  }
 
   const realIp = request.headers.get('x-real-ip');
   if (realIp) return realIp.trim();

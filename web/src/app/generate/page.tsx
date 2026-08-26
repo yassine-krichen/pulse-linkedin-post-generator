@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PostCard } from '@/components/post-card';
+import { QualityCheckBadge } from '@/components/quality-check-badge';
 import { Post, PipelineResult } from '@/types';
 import { toast } from 'sonner';
 import { Zap, Search, Tag, Wand2, AlertCircle, Link2 } from 'lucide-react';
@@ -223,6 +224,7 @@ export default function GeneratePage() {
               </CardContent>
             </Card>
           )}
+          {result?.qualityCheck && <QualityCheckBadge qualityCheck={result.qualityCheck} />}
           <PostCard
             post={post}
             onSaveToBacklog={post.status === 'draft' ? handleSaveToBacklog : undefined}

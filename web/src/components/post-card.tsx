@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Post, PostContent, StandardPostContent, CarouselContent, ImagePostContent } from '@/types';
+import { Post, PostContent, StandardPostContent, CarouselContent, ImagePostContent, QualityCheckResult } from '@/types';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { QualityCheckBadge } from '@/components/quality-check-badge';
 import { toast } from 'sonner';
 import {
   Copy,
@@ -27,6 +28,8 @@ import {
   Save,
   X,
   RefreshCw,
+  Lightbulb,
+  Check,
 } from 'lucide-react';
 
 type RegenerateTone = 'default' | 'casual' | 'punchier' | 'technical';
@@ -326,6 +329,85 @@ function ImageView({ content }: { content: ImagePostContent }) {
   );
 }
 
+function HookVariantPicker({
+  currentHook,
+  hookVariants,
+  loading,
+  applying,
+  onFetch,
+  onApply,
+  onDismiss,
+}: {
+  currentHook: string;
+  hookVariants: string[] | null;
+  loading: boolean;
+  applying: boolean;
+  onFetch: () => void;
+  onApply: (hook: string) => void;
+  onDismiss: () => void;
+}) {
+  if (!hookVariants) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        className="text-xs gap-1.5"
+        disabled={loading}
+        onClick={onFetch}
+      >
+        <Lightbulb className={`w-3 h-3 ${loading ? 'animate-pulse' : ''}`} />
+        {loading ? 'Finding angles...' : 'More hook options'}
+      </Button>
+    );
+  }
+
+  const options = [currentHook, ...hookVariants];
+
+  return (
+    <div className="border border-border/60 rounded-lg p-3 space-y-2 bg-muted/20">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">
+          Pick a hook
+        </p>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-5 w-5 text-muted-foreground"
+          disabled={applying}
+          onClick={onDismiss}
+        >
+          <X className="w-3 h-3" />
+        </Button>
+      </div>
+      {options.map((hook, i) => (
+        <div
+          key={i}
+          className="flex items-start gap-2 border border-border/40 rounded-md p-2 bg-background"
+        >
+          <p className="flex-1 text-sm text-foreground">
+            {hook}
+            {i === 0 && (
+              <span className="ml-1.5 text-[10px] text-muted-foreground/60 font-mono">(current)</span>
+            )}
+          </p>
+          {i > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1 shrink-0"
+              disabled={applying}
+              onClick={() => onApply(hook)}
+            >
+              <Check className="w-3 h-3" />
+              Use this
+            </Button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function getFullText(post: Post): string {
   const c = post.content;
   if ('fullText' in c) return c.fullText;
@@ -349,6 +431,10 @@ export function PostCard({
   const [draftImageStrategy, setDraftImageStrategy] = useState(post.imageStrategy);
   const [tone, setTone] = useState<RegenerateTone>('default');
   const [regenerating, setRegenerating] = useState(false);
+  const [qualityCheck, setQualityCheck] = useState<QualityCheckResult | null>(null);
+  const [hookVariants, setHookVariants] = useState<string[] | null>(null);
+  const [loadingHookVariants, setLoadingHookVariants] = useState(false);
+  const [applyingHook, setApplyingHook] = useState(false);
 
   async function handleRegenerate() {
     setRegenerating(true);
@@ -362,8 +448,9 @@ export function PostCard({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? 'Failed to regenerate');
       }
-      const updated: Post = await res.json();
-      onUpdate?.(updated);
+      const { qualityCheck: revisedQualityCheck, ...updated } = await res.json();
+      onUpdate?.(updated as Post);
+      setQualityCheck(revisedQualityCheck ?? null);
       toast.success('Regenerated');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to regenerate');
@@ -377,6 +464,52 @@ export function PostCard({
     setDraftHashtags(post.hashtags.join(', '));
     setDraftImageStrategy(post.imageStrategy);
     setEditing(true);
+  }
+
+  async function handleFetchHookVariants() {
+    setLoadingHookVariants(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/hook-variants`, { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Failed to generate hook options');
+      }
+      const { hooks }: { hooks: string[] } = await res.json();
+      setHookVariants(hooks);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to generate hook options');
+    } finally {
+      setLoadingHookVariants(false);
+    }
+  }
+
+  async function handleApplyHook(hook: string) {
+    const content = recomputeContent(
+      post.format,
+      { ...(post.content as StandardPostContent), hook },
+      post.hashtags,
+    );
+
+    setApplyingHook(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Failed to apply hook');
+      }
+      const updated: Post = await res.json();
+      onUpdate?.(updated);
+      setHookVariants(null);
+      toast.success('Hook updated');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to apply hook');
+    } finally {
+      setApplyingHook(false);
+    }
   }
 
   async function handleSaveEdit() {
@@ -433,6 +566,9 @@ export function PostCard({
                   Reviewed
                 </Badge>
               )}
+              {post.format === 'standard' && qualityCheck && (
+                <QualityCheckBadge qualityCheck={qualityCheck} />
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -483,6 +619,18 @@ export function PostCard({
             )}
             {post.format === 'image' && <ImageView content={post.content as ImagePostContent} />}
           </>
+        )}
+
+        {!editing && showActions && post.format === 'standard' && (
+          <HookVariantPicker
+            currentHook={(post.content as StandardPostContent).hook}
+            hookVariants={hookVariants}
+            loading={loadingHookVariants}
+            applying={applyingHook}
+            onFetch={handleFetchHookVariants}
+            onApply={handleApplyHook}
+            onDismiss={() => setHookVariants(null)}
+          />
         )}
 
         <Separator className="opacity-30" />

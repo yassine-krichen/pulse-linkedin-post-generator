@@ -42,23 +42,35 @@ function fullTextOf(post: Post): string {
  * posted history yet — a real post in a different format still beats none.
  * Runs a fresh DB query every call since posted history changes constantly,
  * unlike the static profile files cached in `profile.ts`.
+ *
+ * Voice examples are a quality enhancement, not a hard dependency — a DB
+ * hiccup here (transient Neon connection blip, pool exhaustion, etc.) must
+ * never take down post generation entirely. Any DB failure falls back to
+ * the same static examples used when there's genuinely no posted history
+ * yet, same as an empty result would.
  */
 export async function getVoiceExamples(format: PostFormat): Promise<string> {
   const TARGET_COUNT = 3;
 
-  const sameFormat = await db.posts.findPosted({ format, limit: TARGET_COUNT });
-  const posts = [...sameFormat];
+  let posts: Post[];
+  try {
+    const sameFormat = await db.posts.findPosted({ format, limit: TARGET_COUNT });
+    posts = [...sameFormat];
 
-  if (posts.length < TARGET_COUNT) {
-    const anyFormat = await db.posts.findPosted({ limit: TARGET_COUNT });
-    const seen = new Set(posts.map((p) => p.id));
-    for (const post of anyFormat) {
-      if (posts.length >= TARGET_COUNT) break;
-      if (!seen.has(post.id)) {
-        posts.push(post);
-        seen.add(post.id);
+    if (posts.length < TARGET_COUNT) {
+      const anyFormat = await db.posts.findPosted({ limit: TARGET_COUNT });
+      const seen = new Set(posts.map((p) => p.id));
+      for (const post of anyFormat) {
+        if (posts.length >= TARGET_COUNT) break;
+        if (!seen.has(post.id)) {
+          posts.push(post);
+          seen.add(post.id);
+        }
       }
     }
+  } catch (err) {
+    console.error('[voice-examples] DB lookup failed, falling back to static examples:', err);
+    return readStaticExampleFallback();
   }
 
   if (posts.length === 0) return readStaticExampleFallback();

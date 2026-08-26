@@ -46,8 +46,11 @@ export const config = {
      * Match all request paths except:
      * - /login (the login page itself)
      * - /api/login (needed to actually log in)
+     * - /stats and /api/public-stats (public, read-only social-proof page)
+     * - /api/demo (public, rate-limited landing-page live demo — no auth,
+     *   nothing persisted)
      * - Next.js internals and static assets
      */
-    '/((?!login$|api/login$|_next/static|_next/image|favicon.ico).*)',
+    '/((?!login$|api/login$|stats$|api/public-stats$|api/demo$|_next/static|_next/image|favicon.ico).*)',
   ],
 };

@@ -67,6 +67,18 @@ export interface PostStats {
   bestPost: { id: string; title: string; impressions: number } | null;
 }
 
+// Aggregate-only counts safe to expose on a public, unauthenticated page —
+// no post titles, content, or raw input.
+export interface PublicStats {
+  totalPostsGenerated: number;
+  totalPostsPosted: number;
+  totalImpressions: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  avgEngagementRate: number;
+}
+
 export interface EvaluationResult {
   worthy: boolean;
   reason: string;
@@ -80,10 +92,19 @@ export interface ClassificationResult {
   reason: string;
 }
 
+// Result of the quality-lint/humanizer pass — only meaningful for standard
+// posts, since that's the only format the linter/humanizer currently runs
+// against. `null` when the format doesn't apply.
+export interface QualityCheckResult {
+  issuesFound: string[];
+  wasRevised: boolean;
+}
+
 export interface PipelineResult {
   evaluation: EvaluationResult;
   classification?: ClassificationResult;
   post?: Post;
+  qualityCheck?: QualityCheckResult | null;
   error?: string;
 }
 

@@ -92,6 +92,10 @@ export const pipelineRequestSchema = z
     message: 'Provide either input or repoUrl',
   });
 
+export const demoRequestSchema = z.object({
+  input: z.string().trim().min(10).max(800),
+});
+
 const trendingTopicSchema = z.object({
   title: z.string(),
   summary: z.string(),
