@@ -39,7 +39,8 @@ const REGENERATED_STANDARD_POST_JSON = JSON.stringify({
   body: 'A new body.',
   takeaway: 'A new takeaway.',
   cta: 'What do you think?',
-  fullText: 'A new hook.\n\nA new body.\n\nA new takeaway.\n\nWhat do you think?',
+  fullText:
+    'Regenerating this post pushed me to rethink how I frame the JWT refresh race condition story for a technical audience. The original draft buried the interesting part under too much setup, so this version leads with the actual failure: two concurrent requests reading the same stale token record before either write committed, both issuing a new refresh token from the same starting point. That collision only showed up once real users hit the system during a peak traffic window, which is exactly the scenario our sequential test suite never exercised. The fix was a unique constraint on the token version column plus a retry loop on conflict, but the real fix was adding concurrent load tests before every release so this class of bug gets caught long before production users ever see it. #Systems',
   imageStrategy: 'No image needed — copy stands alone',
   hashtags: ['#Systems'],
   topicCategory: 'Systems',

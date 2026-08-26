@@ -1,6 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Prisma, PrismaClient } from '@/generated/prisma/client';
-import { Post, PostContent, PostStats, PostStatus, Settings } from '@/types';
+import { Post, PostContent, PostFormat, PostStats, PostStatus, Settings } from '@/types';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 
@@ -27,6 +27,7 @@ type PostRow = {
   scheduledDate: Date | null;
   postedDate: Date | null;
   notes: string | null;
+  postUrl: string | null;
   impressions: number | null;
   likes: number | null;
   comments: number | null;
@@ -52,6 +53,7 @@ function toPost(row: PostRow): Post {
     scheduledDate: row.scheduledDate?.toISOString(),
     postedDate: row.postedDate?.toISOString(),
     notes: row.notes ?? undefined,
+    postUrl: row.postUrl ?? undefined,
     impressions: row.impressions ?? undefined,
     likes: row.likes ?? undefined,
     comments: row.comments ?? undefined,
@@ -78,6 +80,7 @@ function fromPost(post: Post) {
     scheduledDate: post.scheduledDate ? new Date(post.scheduledDate) : null,
     postedDate: post.postedDate ? new Date(post.postedDate) : null,
     notes: post.notes ?? null,
+    postUrl: post.postUrl ?? null,
   };
 }
 
@@ -100,6 +103,7 @@ function partialFromPost(updates: Partial<Post>) {
     data.postedDate = updates.postedDate ? new Date(updates.postedDate) : null;
   }
   if (updates.notes !== undefined) data.notes = updates.notes;
+  if (updates.postUrl !== undefined) data.postUrl = updates.postUrl;
   if (updates.impressions !== undefined) data.impressions = updates.impressions;
   if (updates.likes !== undefined) data.likes = updates.likes;
   if (updates.comments !== undefined) data.comments = updates.comments;
@@ -140,6 +144,20 @@ export const db = {
         prisma.post.count({ where }),
       ]);
       return { posts: rows.map(toPost), total };
+    },
+
+    // Voice-learning needs recent real posted history, preferring the same
+    // format as the one being generated. Ordered by postedDate (falling back
+    // to updatedAt for the rare row missing it) rather than createdAt, since
+    // "recently posted" is the signal that matters here, not "recently drafted".
+    async findPosted(opts: { format?: PostFormat; limit: number }): Promise<Post[]> {
+      const where = { status: 'posted' as PostStatus, ...(opts.format ? { format: opts.format } : {}) };
+      const rows = await prisma.post.findMany({
+        where,
+        orderBy: [{ postedDate: 'desc' }, { updatedAt: 'desc' }],
+        take: opts.limit,
+      });
+      return rows.map(toPost);
     },
 
     async findByWeek(weekStart: Date, weekEnd: Date): Promise<Post[]> {

@@ -22,6 +22,7 @@ model Post {
   scheduledDate DateTime?
   postedDate    DateTime?
   notes         String?
+  postUrl       String?   // public LinkedIn permalink, used to auto-fetch engagement
   impressions   Int?
   likes         Int?
   comments      Int?

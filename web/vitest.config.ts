@@ -13,6 +13,11 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    exclude: ['**/node_modules/**', 'tests/lib/db.test.ts', 'tests/api/**'],
+    exclude: [
+      '**/node_modules/**',
+      'tests/lib/db.test.ts',
+      'tests/lib/voice-examples.test.ts',
+      'tests/api/**',
+    ],
   },
 });

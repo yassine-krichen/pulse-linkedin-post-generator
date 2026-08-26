@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { loadProfileContext } from '@/lib/profile';
 import { generatePost, TONE_INSTRUCTIONS } from '@/lib/prompts/generate';
+import { humanizeStandardPost } from '@/lib/prompts/humanize';
+import { lintPost } from '@/lib/quality-check';
 import { regenerateRequestSchema, formatZodError } from '@/lib/validation';
 import { checkRateLimit, rateLimitResponseInit } from '@/lib/rate-limit';
+import { StandardPostContent } from '@/types';
 
 export async function POST(
   req: NextRequest,
@@ -37,13 +40,27 @@ export async function POST(
     const ctx = loadProfileContext();
     const toneInstruction = TONE_INSTRUCTIONS[result.data.tone ?? 'default'];
 
-    const generated = await generatePost(
+    let generated = await generatePost(
       existing.rawInput,
       existing.format,
       existing.contentType,
       ctx,
       toneInstruction,
     );
+
+    // Quality/humanizer pass — standard posts only. Skips the extra LLM call
+    // entirely when the regenerated draft is already clean.
+    if (existing.format === 'standard') {
+      const issues = lintPost(generated.content.fullText);
+      if (issues.length > 0) {
+        const revisedContent = await humanizeStandardPost(
+          generated.content as StandardPostContent,
+          issues,
+          ctx,
+        );
+        generated = { ...generated, content: revisedContent };
+      }
+    }
 
     const updated = await db.posts.update(id, {
       title: generated.title,

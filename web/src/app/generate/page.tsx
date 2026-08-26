@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { PostCard } from '@/components/post-card';
 import { Post, PipelineResult } from '@/types';
 import { toast } from 'sonner';
-import { Zap, Search, Tag, Wand2, AlertCircle } from 'lucide-react';
+import { Zap, Search, Tag, Wand2, AlertCircle, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Step = 'idle' | 'evaluating' | 'classifying' | 'generating' | 'done' | 'rejected' | 'error';
@@ -21,15 +23,21 @@ const STEP_META: Record<string, { label: string; icon: React.ElementType }> = {
 };
 
 export default function GeneratePage() {
+  const [mode, setMode] = useState<'text' | 'repo'>('text');
   const [input, setInput] = useState('');
+  const [repoUrl, setRepoUrl] = useState('');
   const [step, setStep] = useState<Step>('idle');
   const [activeStepIdx, setActiveStepIdx] = useState(0);
   const [result, setResult] = useState<PipelineResult | null>(null);
   const [post, setPost] = useState<Post | null>(null);
 
   async function handleGenerate() {
-    if (!input.trim() || input.trim().length < 10) {
+    if (mode === 'text' && (!input.trim() || input.trim().length < 10)) {
       toast.error('Add more detail — describe what you did, built, or learned.');
+      return;
+    }
+    if (mode === 'repo' && !repoUrl.trim()) {
+      toast.error('Paste a GitHub repo URL first.');
       return;
     }
 
@@ -46,7 +54,7 @@ export default function GeneratePage() {
       const res = await fetch('/api/pipeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify(mode === 'repo' ? { repoUrl } : { input }),
       });
 
       clearTimeout(timer1);
@@ -114,38 +122,74 @@ export default function GeneratePage() {
         </p>
       </div>
 
-      <div className="space-y-3">
-        <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="I built a REST API with NestJS that handles X. The tricky part was Y — I learned that Z..."
-          className="min-h-36 resize-none text-sm bg-muted/20 border-border/60 font-mono placeholder:text-muted-foreground/40"
-          disabled={isLoading}
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleGenerate();
-          }}
-        />
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground font-mono">
-            {isLoading ? (
-              <StepIndicator activeIdx={activeStepIdx} />
-            ) : input.length > 0 ? (
-              `${input.length} chars · Ctrl+Enter to generate`
-            ) : (
-              ''
-            )}
-          </span>
-          <Button
-            onClick={handleGenerate}
-            disabled={isLoading || !input.trim()}
-            size="sm"
-            className="gap-1.5"
-          >
-            <Zap className="w-3.5 h-3.5" />
-            {isLoading ? 'Working...' : 'Evaluate & Generate'}
-          </Button>
-        </div>
-      </div>
+      <Tabs
+        value={mode}
+        onValueChange={(value) => setMode(value as 'text' | 'repo')}
+      >
+        <TabsList>
+          <TabsTrigger value="text">Describe it</TabsTrigger>
+          <TabsTrigger value="repo">From GitHub repo</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="text" className="space-y-3 pt-3">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="I built a REST API with NestJS that handles X. The tricky part was Y — I learned that Z..."
+            className="min-h-36 resize-none text-sm bg-muted/20 border-border/60 font-mono placeholder:text-muted-foreground/40"
+            disabled={isLoading}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleGenerate();
+            }}
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-mono">
+              {isLoading ? (
+                <StepIndicator activeIdx={activeStepIdx} />
+              ) : input.length > 0 ? (
+                `${input.length} chars · Ctrl+Enter to generate`
+              ) : (
+                ''
+              )}
+            </span>
+            <Button
+              onClick={handleGenerate}
+              disabled={isLoading || !input.trim()}
+              size="sm"
+              className="gap-1.5"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              {isLoading ? 'Working...' : 'Evaluate & Generate'}
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="repo" className="space-y-3 pt-3">
+          <Input
+            value={repoUrl}
+            onChange={(e) => setRepoUrl(e.target.value)}
+            placeholder="https://github.com/owner/repo"
+            disabled={isLoading}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleGenerate();
+            }}
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground font-mono">
+              {isLoading ? <StepIndicator activeIdx={activeStepIdx} /> : ''}
+            </span>
+            <Button
+              onClick={handleGenerate}
+              disabled={isLoading || !repoUrl.trim()}
+              size="sm"
+              className="gap-1.5"
+            >
+              <Link2 className="w-3.5 h-3.5" />
+              {isLoading ? 'Working...' : 'Evaluate & Generate'}
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {step === 'rejected' && result && (
         <Card className="border-amber-500/20 bg-amber-500/5">
@@ -165,12 +209,27 @@ export default function GeneratePage() {
       )}
 
       {step === 'done' && post && (
-        <PostCard
-          post={post}
-          onSaveToBacklog={post.status === 'draft' ? handleSaveToBacklog : undefined}
-          onMarkAsPosted={post.status !== 'posted' ? handleMarkAsPosted : undefined}
-          onUpdate={setPost}
-        />
+        <>
+          {result?.evaluation.similarTo && (
+            <Card className="border-amber-500/20 bg-amber-500/5">
+              <CardContent className="pt-4 space-y-1">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-500/70 shrink-0" />
+                  <p className="text-sm font-medium">Looks similar to an existing post</p>
+                </div>
+                <p className="text-sm text-muted-foreground pl-6">
+                  Resembles &ldquo;{result.evaluation.similarTo}&rdquo; — worth a genuinely new angle before posting.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          <PostCard
+            post={post}
+            onSaveToBacklog={post.status === 'draft' ? handleSaveToBacklog : undefined}
+            onMarkAsPosted={post.status !== 'posted' ? handleMarkAsPosted : undefined}
+            onUpdate={setPost}
+          />
+        </>
       )}
     </div>
   );

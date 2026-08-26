@@ -18,6 +18,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     globalSetup: ['./tests/setup/global-setup.ts'],
-    include: ['tests/lib/db.test.ts', 'tests/api/**/*.test.ts'],
+    include: ['tests/lib/db.test.ts', 'tests/lib/voice-examples.test.ts', 'tests/api/**/*.test.ts'],
   },
 });

@@ -33,10 +33,17 @@ const postContentSchema = z.union([
   imagePostContentSchema,
 ]);
 
+const CONTENT_SCHEMA_BY_FORMAT = {
+  standard: standardPostContentSchema,
+  carousel: carouselContentSchema,
+  image: imagePostContentSchema,
+} as const;
+
 export const postUpdateSchema = z
   .object({
     status: z.enum(['draft', 'ready', 'posted']),
     title: z.string().min(1),
+    format: z.enum(['standard', 'carousel', 'image']),
     content: postContentSchema,
     imageStrategy: z.string(),
     hashtags: z.array(z.string()).max(10),
@@ -44,13 +51,30 @@ export const postUpdateSchema = z
     scheduledDate: z.string().datetime().nullable(),
     postedDate: z.string().datetime().nullable(),
     notes: z.string().max(2000),
+    postUrl: z.string().url().nullable(),
     impressions: z.number().int().min(0),
     likes: z.number().int().min(0),
     comments: z.number().int().min(0),
     shares: z.number().int().min(0),
   })
   .partial()
-  .strict();
+  .strict()
+  .superRefine((body, ctx) => {
+    // Only enforceable when both fields are present in the same partial
+    // update — a PATCH that only touches e.g. `notes` has no format/content
+    // pair to cross-check.
+    if (!body.format || body.content === undefined) return;
+
+    const shapeSchema = CONTENT_SCHEMA_BY_FORMAT[body.format];
+    const result = shapeSchema.safeParse(body.content);
+    if (!result.success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['content'],
+        message: `content does not match the shape expected for format "${body.format}"`,
+      });
+    }
+  });
 
 export const settingsUpdateSchema = z
   .object({
@@ -59,9 +83,14 @@ export const settingsUpdateSchema = z
   .partial()
   .strict();
 
-export const pipelineRequestSchema = z.object({
-  input: z.string().trim().min(10).max(4000),
-});
+export const pipelineRequestSchema = z
+  .object({
+    input: z.string().trim().min(10).max(4000).optional(),
+    repoUrl: z.string().url().optional(),
+  })
+  .refine((body) => Boolean(body.input) || Boolean(body.repoUrl), {
+    message: 'Provide either input or repoUrl',
+  });
 
 const trendingTopicSchema = z.object({
   title: z.string(),

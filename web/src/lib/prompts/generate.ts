@@ -1,6 +1,7 @@
 import { PostFormat, ContentType, StandardPostContent, CarouselContent, ImagePostContent } from '@/types';
 import { generate, extractJSON } from '@/lib/llm';
 import { ProfileContext } from '@/lib/profile';
+import { getVoiceExamples } from '@/lib/voice-examples';
 
 const BRAND_CONSTRAINTS = `
 BRAND CONSTRAINTS (non-negotiable — embody these in every word):
@@ -55,12 +56,14 @@ export async function generateStandardPost(
 ): Promise<{ content: StandardPostContent; imageStrategy: string; hashtags: string[]; topicCategory: string; title: string }> {
   const SYSTEM = `You are writing a LinkedIn post for a software engineer. You have their full profile context and examples of their voice. Produce content that sounds genuinely like them — not a generic tech influencer.`;
 
+  const examples = await getVoiceExamples('standard');
+
   const prompt = `
 ${ctx.combined}
 
 ${BRAND_CONSTRAINTS}
 
-${ctx.examples ? `VOICE EXAMPLES (match this tone):\n${ctx.examples}` : ''}
+${examples ? `VOICE EXAMPLES (match this tone):\n${examples}` : ''}
 
 ${toneInstruction ? `ADDITIONAL DIRECTION FOR THIS REWRITE:\n${toneInstruction}` : ''}
 
@@ -139,10 +142,14 @@ export async function generateCarouselPost(
 ): Promise<{ content: CarouselContent; imageStrategy: string; hashtags: string[]; topicCategory: string; title: string }> {
   const SYSTEM = `You are creating a LinkedIn carousel post for a software engineer. Carousels work as visual slide decks. Each slide must stand alone but flow logically. Minimal text per slide — carousels are scanned, not read.`;
 
+  const examples = await getVoiceExamples('carousel');
+
   const prompt = `
 ${ctx.combined}
 
 ${BRAND_CONSTRAINTS}
+
+${examples ? `VOICE EXAMPLES (match this tone):\n${examples}` : ''}
 
 ${toneInstruction ? `ADDITIONAL DIRECTION FOR THIS REWRITE:\n${toneInstruction}` : ''}
 
@@ -220,10 +227,14 @@ export async function generateImagePost(
 ): Promise<{ content: ImagePostContent; imageStrategy: string; hashtags: string[]; topicCategory: string; title: string }> {
   const SYSTEM = `You are creating a LinkedIn image post for a software engineer. The image is the focus — the caption is short and punchy (1-3 sentences max).`;
 
+  const examples = await getVoiceExamples('image');
+
   const prompt = `
 ${ctx.combined}
 
 ${BRAND_CONSTRAINTS}
+
+${examples ? `VOICE EXAMPLES (match this tone):\n${examples}` : ''}
 
 ${toneInstruction ? `ADDITIONAL DIRECTION FOR THIS REWRITE:\n${toneInstruction}` : ''}
 

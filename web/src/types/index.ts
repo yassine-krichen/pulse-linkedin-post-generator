@@ -47,6 +47,7 @@ export interface Post {
   scheduledDate?: string | null;
   postedDate?: string | null;
   notes?: string;
+  postUrl?: string | null;
   impressions?: number;
   likes?: number;
   comments?: number;
@@ -71,6 +72,7 @@ export interface EvaluationResult {
   reason: string;
   suggestions?: string;
   classifiedAs?: ContentType;
+  similarTo?: string;
 }
 
 export interface ClassificationResult {

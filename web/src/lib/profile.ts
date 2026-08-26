@@ -12,7 +12,6 @@ function readFile(filePath: string): string {
 export interface ProfileContext {
   profile: string;
   linkedinProfile: string;
-  examples: string;
   combined: string;
 }
 
@@ -29,20 +28,9 @@ export function loadProfileContext(): ProfileContext {
 
 function readProfileContext(): ProfileContext {
   const profilePath = path.join(CONTENT_SYSTEM_DIR, 'PROFILE.md');
-  const examplePostPath = path.join(CONTENT_SYSTEM_DIR, 'examples', 'example-post-01.md');
-  const exampleCarouselPath = path.join(CONTENT_SYSTEM_DIR, 'examples', 'example-carousel-01.md');
 
   const profile = readFile(profilePath);
   const linkedinProfile = readFile(LINKEDIN_PROFILE_PATH);
-  const examplePost = readFile(examplePostPath);
-  const exampleCarousel = readFile(exampleCarouselPath);
-
-  const examples = [
-    examplePost ? `EXAMPLE STANDARD POST:\n${examplePost}` : '',
-    exampleCarousel ? `EXAMPLE CAROUSEL POST:\n${exampleCarousel}` : '',
-  ]
-    .filter(Boolean)
-    .join('\n\n---\n\n');
 
   const combined = [
     profile ? `USER PROFILE:\n${profile}` : '',
@@ -51,5 +39,5 @@ function readProfileContext(): ProfileContext {
     .filter(Boolean)
     .join('\n\n---\n\n');
 
-  return { profile, linkedinProfile, examples, combined };
+  return { profile, linkedinProfile, combined };
 }

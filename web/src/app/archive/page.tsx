@@ -5,7 +5,8 @@ import { Post, PostStats } from '@/types';
 import { PostCard } from '@/components/post-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Archive, Loader2, TrendingUp, Eye, Heart, MessageCircle, Share2, BarChart2, CheckCircle2 } from 'lucide-react';
+import { Archive, Loader2, TrendingUp, Eye, Heart, MessageCircle, Share2, BarChart2, CheckCircle2, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 const PAGE_SIZE = 20;
 
@@ -37,18 +38,64 @@ interface EngagementFormState {
 function EngagementBar({
   post,
   onLog,
+  onUpdate,
 }: {
   post: Post;
   onLog: (id: string, data: { impressions: number; likes: number; comments: number; shares: number }) => Promise<void>;
+  onUpdate: (updated: Post) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [postUrl, setPostUrl] = useState(post.postUrl ?? '');
+  const [refreshing, setRefreshing] = useState(false);
   const [form, setForm] = useState<EngagementFormState>({
     impressions: String(post.impressions ?? ''),
     likes: String(post.likes ?? ''),
     comments: String(post.comments ?? ''),
     shares: String(post.shares ?? ''),
   });
+
+  async function handleSavePostUrl() {
+    const trimmed = postUrl.trim();
+    if (trimmed === (post.postUrl ?? '')) return;
+    const res = await fetch(`/api/posts/${post.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postUrl: trimmed || null }),
+    });
+    if (!res.ok) {
+      toast.error('Failed to save LinkedIn URL');
+      return;
+    }
+    const updated: Post = await res.json();
+    onUpdate(updated);
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/refresh-engagement`, { method: 'POST' });
+      const body: { post: Post; refreshed: boolean; error?: string } = await res.json();
+      if (!res.ok) {
+        toast.error(body.error ?? 'Failed to refresh engagement');
+        return;
+      }
+      onUpdate(body.post);
+      setForm({
+        impressions: String(body.post.impressions ?? ''),
+        likes: String(body.post.likes ?? ''),
+        comments: String(body.post.comments ?? ''),
+        shares: String(body.post.shares ?? ''),
+      });
+      if (body.refreshed) {
+        toast.success('Engagement refreshed');
+      } else {
+        toast.info("Couldn't fetch engagement — enter manually");
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const hasData = post.impressions !== undefined;
   const engRate =
@@ -109,6 +156,32 @@ function EngagementBar({
   return (
     <div className="border border-border/40 rounded-lg p-4 bg-card/30 space-y-3">
       <p className="text-xs text-muted-foreground font-medium">Log LinkedIn engagement</p>
+      <div className="space-y-1">
+        <label className="text-xs text-muted-foreground">LinkedIn post URL</label>
+        <div className="flex gap-2">
+          <Input
+            type="url"
+            placeholder="https://www.linkedin.com/posts/..."
+            className="h-8 text-sm"
+            value={postUrl}
+            onChange={(e) => setPostUrl(e.target.value)}
+            onBlur={handleSavePostUrl}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1 shrink-0"
+            onClick={handleRefresh}
+            disabled={refreshing || !post.postUrl}
+          >
+            {refreshing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+            Refresh
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground/60">
+          Auto-fills likes and comments from the public post. Impressions and shares stay manual.
+        </p>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         {(
           [
@@ -262,7 +335,7 @@ export default function ArchivePage() {
             {monthPosts.map((post) => (
               <div key={post.id} className="space-y-2">
                 <PostCard post={post} showActions={false} onUpdate={handleUpdate} />
-                <EngagementBar post={post} onLog={handleLogEngagement} />
+                <EngagementBar post={post} onLog={handleLogEngagement} onUpdate={handleUpdate} />
               </div>
             ))}
           </div>
