@@ -1,0 +1,68 @@
+version: '3'
+
+# This project depends on the llm-web-bridge sibling project running locally
+# (LLM_BRIDGE_URL in web/.env, defaults to http://127.0.0.1:3000) for
+# LLM_PROVIDER=bridge features to work. `dev`/`run` do not check for it —
+# the app boots fine without it, it just can't call the bridge.
+#
+# Port 3003 is reserved for this project in the local multi-project setup
+# (3000 = llm-web-bridge, 3001/3002 = job-match-resume-engine api/web).
+
+vars:
+  PORT: '3003'
+
+tasks:
+  install:
+    desc: Install web/ dependencies
+    dir: web
+    cmds:
+      - npm install
+
+  dev:
+    desc: Run the Next.js dev server on port {{.PORT}} (foreground, hot-reload)
+    dir: web
+    cmds:
+      - npx next dev -p {{.PORT}}
+
+  run:
+    desc: Build and run the Next.js app in production mode on port {{.PORT}}
+    dir: web
+    cmds:
+      - npx next build
+      - npx next start -p {{.PORT}}
+
+  stop:
+    desc: Kill whatever is listening on port {{.PORT}} (Windows/PowerShell)
+    dir: web
+    cmds:
+      - |
+        powershell -NoProfile -Command "& {
+          \$conns = Get-NetTCPConnection -LocalPort {{.PORT}} -State Listen -ErrorAction SilentlyContinue;
+          if (\$conns) {
+            \$conns | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object {
+              Write-Host ('Stopping process ' + \$_ + ' on port {{.PORT}}');
+              Stop-Process -Id \$_ -Force -ErrorAction SilentlyContinue
+            }
+          } else {
+            Write-Host 'Nothing listening on port {{.PORT}}'
+          }
+        }"
+
+  test:
+    desc: Run web/'s test suite (if configured)
+    dir: web
+    cmds:
+      - |
+        powershell -NoProfile -Command "& {
+          \$pkg = Get-Content package.json -Raw | ConvertFrom-Json;
+          if (\$pkg.scripts.test) {
+            npm run test
+          } else {
+            Write-Host 'no tests configured'
+          }
+        }"
+
+  help:
+    desc: List all available tasks
+    cmds:
+      - task --list
