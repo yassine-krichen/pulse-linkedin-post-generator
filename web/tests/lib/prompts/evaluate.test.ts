@@ -15,7 +15,6 @@ const mockGenerate = vi.mocked(generate);
 const CTX: ProfileContext = {
   profile: 'profile',
   linkedinProfile: 'linkedin profile',
-  examples: 'examples',
   combined: 'USER PROFILE:\nprofile',
 };
 

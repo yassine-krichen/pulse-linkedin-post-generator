@@ -62,6 +62,12 @@ tasks:
           }
         }"
 
+  studio:
+    desc: Open Claude Code in content-studio/ (manual agent workspace), then say "Read SKILL.md and generate a post about X"
+    dir: content-studio
+    cmds:
+      - claude
+
   help:
     desc: List all available tasks
     cmds:
