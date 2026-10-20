@@ -15,3 +15,10 @@ web/dev.db
 web/dev.db-journal
 web/test.db
 web/test.db-journal
+
+# Personal LinkedIn brand notes (local only; see *.example.md templates)
+content-studio/PROFILE.md
+content-studio/POSTED.md
+content-studio/BACKLOG.md
+docs/linkedin-*.md
+!docs/linkedin-*.example.md

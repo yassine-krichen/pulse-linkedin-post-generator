@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="docs/cover.png" alt="Pulse cover" width="100%" />
   <h1>
     Pulse <sup><sub>v1.0.0</sub></sup>
   </h1>
@@ -13,7 +12,7 @@
   ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
   ![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma)
   ![PostgreSQL](https://img.shields.io/badge/Postgres-Neon-4169E1?logo=postgresql&logoColor=white)
-  ![License](https://img.shields.io/badge/license-MIT-blue)
+  ![License](https://img.shields.io/badge/license-PolyForm%20Strict-red)
 
   [![Live](https://img.shields.io/badge/live-pulse--linkedin.onrender.com-brightgreen)](https://pulse-linkedin.onrender.com)
 </div>
@@ -43,14 +42,6 @@ The interesting engineering decision here isn't the LLM call — it's everywhere
 **Dual LLM provider with fallback** — a local browser-driven bridge for free local development, a hosted multi-provider proxy for production, automatic fallback from one to the other on any failure.
 
 **Single-password access gate** — one shared secret, no user accounts, fails closed if misconfigured in production.
-
-## Demo
-
-![Generate flow](docs/demo/generate.png)
-*Paste a note or a repo URL, get a full draft with hook, body, takeaway, and CTA in your voice.*
-
-![Archive with engagement tracking](docs/demo/archive.png)
-*Posted history with real, auto-fetched engagement numbers feeding back into the next draft's style examples.*
 
 ## How it works
 
@@ -115,8 +106,8 @@ sequenceDiagram
 ### Clone
 
 ```bash
-git clone https://github.com/Yassinekrn/linkedin-content-system.git
-cd linkedin-content-system/web
+git clone https://github.com/yassine-krichen/pulse-linkedin-post-generator.git
+cd pulse-linkedin-post-generator/web
 ```
 
 ### Install
@@ -161,7 +152,7 @@ npm run test:integration  # runs against the real configured DATABASE_URL
 |---|---|---|---|
 | `DATABASE_URL` | Yes | — | Postgres connection string |
 | `LLM_PROVIDER` | No | `bridge` | `bridge` (local, free, browser-driven) or `freellmapi` (hosted, used in production) |
-| `LLM_BRIDGE_URL` | If `LLM_PROVIDER=bridge` | `http://127.0.0.1:3000` | Local [llm-web-bridge](https://github.com) instance |
+| `LLM_BRIDGE_URL` | If `LLM_PROVIDER=bridge` | `http://127.0.0.1:3000` | Local `llm-web-bridge` instance (a separate project that drives a logged-in browser session) |
 | `LLM_BRIDGE_API_KEY` | No | — | Only if the bridge instance requires one |
 | `LLM_BRIDGE_PROVIDER` | No | `claude` | `claude` or `chatgpt` |
 | `FREELLM_BASE_URL` | If `LLM_PROVIDER=freellmapi`, or as bridge fallback | — | OpenAI-compatible proxy base URL |
@@ -180,59 +171,37 @@ npm run test:integration  # runs against the real configured DATABASE_URL
 
 `POST /api/posts/[id]/refresh-engagement` — best-effort fetch of real like/comment counts from the post's stored LinkedIn URL.
 
+`POST /api/demo` — unauthenticated landing-page demo. Streams a generated post, is rate-limited per client IP (3 requests per 10 minutes), rejects bodies over 4 KB and persists nothing.
+
 `GET /api/public-stats` — no authentication required. Aggregate counts only (no post content or titles).
 
 ## Roadmap
 
 | Status | Item |
 |---|---|
-| ✅ | Evaluate → classify → generate pipeline |
-| ✅ | Style learning from real posted history |
-| ✅ | Duplicate-topic detection |
-| ✅ | Rule-based humanizer / quality gate |
-| ✅ | Repo-to-draft |
-| ✅ | Free engagement auto-fetch |
-| ✅ | Hook variants |
-| 🔲 | Live, no-login demo on the landing page with streamed generation |
-| 🔲 | Multi-platform drafts (X/Twitter, dev.to) — same pipeline, different length/format constraints |
-| 🔲 | Trending-topic search backed by a real search API instead of LLM-only guessing |
+| Done | Evaluate → classify → generate pipeline |
+| Done | Style learning from real posted history |
+| Done | Duplicate-topic detection |
+| Done | Rule-based humanizer / quality gate |
+| Done | Repo-to-draft |
+| Done | Free engagement auto-fetch |
+| Done | Hook variants |
+| Done | Public landing-page demo with streamed generation, rate-limited, nothing stored |
+| Planned | Multi-platform drafts (X/Twitter, dev.to) — same pipeline, different length/format constraints |
+| Planned | Trending-topic search backed by a real search API (the planner page currently asks the LLM for topic ideas) |
 
 ## License
 
-MIT © 2026 Yassine Krichen
+**Source-available, not open source.** Pulse is published under the
+[PolyForm Strict License 1.0.0](LICENSE): you may read, run, and learn from the code
+for personal, research, or evaluation use.
 
-Built by [Yassine Krichen](https://github.com/Yassinekrn)
+You may **not** use it commercially, redistribute it, rebrand it, or publish modified
+versions without written permission. Copyright (c) 2026 Yassine Krichen. All rights
+not granted by the license are reserved.
+
+For commercial licensing or collaboration: krichenyassine22@gmail.com
 
 ---
 
-## Before You Publish
-
-- [ ] **Make the repo public** — it's currently private under `Yassinekrn/linkedin-content-system`. A portfolio README only works if the people it's for can actually reach it.
-- [ ] **Add `docs/cover.png`** — generate with: *"Pulse — a dark, minimal dashboard for drafting LinkedIn posts from technical notes. High-contrast professional software screenshot aesthetic. Wide banner format, 1400×600px. Show the actual generate screen or a stylized representation of it. No people, no text overlays."* Commit the output at that path.
-- [ ] **Add real screenshots to `docs/demo/`** — `generate.png` and `archive.png` are referenced above and don't exist yet. A short screen recording exported as `docs/demo/demo.gif` (under 10MB) would work even better as the lead image.
-- [ ] **Add a `LICENSE` file** with the MIT text below — none exists in the repo yet, and the badge above currently points at nothing.
-- [ ] **Ship the live-demo/streaming roadmap item, then move it from 🔲 to ✅** and update the Demo section with a real GIF of it.
-
-```
-MIT License
-
-Copyright (c) 2026 Yassine Krichen
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
+Built by [Yassine Krichen](https://github.com/yassine-krichen)
